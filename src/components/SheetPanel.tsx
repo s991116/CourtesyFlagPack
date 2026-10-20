@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { flagById } from "../data/flags";
+import { flagImageStyle, slotFlagStyle } from "../lib/flagSize";
 import { paginateFlags } from "../lib/layout";
 import type { FlagSize, SheetFormat } from "../types/flag";
 
@@ -27,27 +28,27 @@ export function SheetPanel({
   const safePage = Math.min(pageIndex, Math.max(pages.length - 1, 0));
   const page = pages[safePage] ?? [];
   const slots = format.columns * format.rows;
+  const countLabel =
+    selectedIds.length === 0
+      ? "No flags selected"
+      : selectedIds.length === 1
+        ? "1 flag selected"
+        : `${selectedIds.length} flags selected`;
 
   return (
-    <aside className="sheet" aria-label="Valgt ark">
+    <aside className="sheet" aria-label="Selected sheet">
       <header className="sheet-head">
-        <h2>Arket</h2>
-        <p>
-          {selectedIds.length === 0
-            ? "Ingen flag valgt"
-            : selectedIds.length === 1
-              ? "1 flag valgt"
-              : `${selectedIds.length} flag valgt`}
-        </p>
+        <h2>Sheet</h2>
+        <p>{countLabel}</p>
       </header>
 
       <dl className="sheet-facts">
         <div>
-          <dt>Flagmål</dt>
+          <dt>Flag size</dt>
           <dd>{size.label}</dd>
         </div>
         <div>
-          <dt>Pladser</dt>
+          <dt>Slots</dt>
           <dd>
             {format.columns} × {format.rows}
           </dd>
@@ -73,13 +74,13 @@ export function SheetPanel({
 
       {selectedIds.length === 0 ? (
         <p className="sheet-empty">
-          Klik flagene i den rækkefølge, de skal ligge på arket.
+          Click flags in the order they should appear on the sheet.
         </p>
       ) : (
         <>
           <div className="preview-bar">
             <span>
-              Side {safePage + 1} af {pages.length}
+              Page {safePage + 1} of {pages.length}
             </span>
             {pages.length > 1 ? (
               <span className="preview-nav">
@@ -88,7 +89,7 @@ export function SheetPanel({
                   onClick={() => setPageIndex(Math.max(safePage - 1, 0))}
                   disabled={safePage === 0}
                 >
-                  Forrige
+                  Previous
                 </button>
                 <button
                   type="button"
@@ -97,7 +98,7 @@ export function SheetPanel({
                   }
                   disabled={safePage === pages.length - 1}
                 >
-                  Næste
+                  Next
                 </button>
               </span>
             ) : null}
@@ -111,43 +112,58 @@ export function SheetPanel({
               const flag = id ? flagById(id) : undefined;
               return (
                 <li key={index} className={flag ? "slot" : "slot is-empty"}>
+                  <span className="slot-name" title={flag?.hemLabel}>
+                    {flag?.hemLabel}
+                  </span>
+                  <span className="slot-flag" style={slotFlagStyle()}>
+                    {flag ? (
+                      <span className="flag-image" style={flagImageStyle(flag)}>
+                        <img src={flag.asset.svg} alt="" />
+                      </span>
+                    ) : (
+                      <span className="slot-empty">Empty</span>
+                    )}
+                  </span>
                   {flag ? (
-                    <img src={flag.asset.svg} alt={flag.hemLabel} />
+                    <button
+                      type="button"
+                      className="slot-remove"
+                      aria-label={`Remove ${flag.hemLabel}`}
+                      onClick={() => onRemove(flag.id)}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.75"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4 7h16M9.5 7V4.5h5V7M7.5 7l.8 12.5h7.4L16.5 7M10 11v5M14 11v5"
+                        />
+                      </svg>
+                    </button>
                   ) : (
-                    <span className="slot-empty">Tom</span>
+                    <span className="slot-remove-spacer" aria-hidden="true" />
                   )}
                 </li>
               );
             })}
           </ol>
-          <ul className="picked">
-            {selectedIds.map((id, index) => {
-              const flag = flagById(id);
-              if (!flag) return null;
-              return (
-                <li key={id}>
-                  <span className="picked-index">{index + 1}</span>
-                  <img src={flag.asset.svg} alt="" />
-                  <span className="picked-name">{flag.hemLabel}</span>
-                  <button type="button" onClick={() => onRemove(id)}>
-                    Fjern
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
           <button type="button" className="clear" onClick={onClear}>
-            Ryd valg
+            Clear selection
           </button>
         </>
       )}
 
       <p className="sheet-note">
-        PDF i rigtigt trykmål bygges oven på det samme valg. Langs kanten
-        printes navnet fra metadata
+        A print-size PDF will be built from this selection. The name from the
+        metadata is printed along the edge
         {selectedIds[0] ? (
           <>
-            , fx <span className="hem-sample">{flagById(selectedIds[0])?.hemLabel}</span>
+            , for example{" "}
+            <span className="hem-sample">
+              {flagById(selectedIds[0])?.hemLabel}
+            </span>
           </>
         ) : null}
         .

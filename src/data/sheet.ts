@@ -1,8 +1,16 @@
 import type { FlagSize, SheetFormat } from "../types/flag";
 
-/** Cloth size for every flag on the sheet. More presets can be added later. */
+/** Largest cloth: 40 cm on the fly, 30 cm on the hoist. */
+export const maxFlagLengthCm = 40;
+export const maxFlagHeightCm = 30;
+
 export const flagSizes: readonly FlagSize[] = [
-  { id: "30x40", widthCm: 30, heightCm: 40, label: "30 × 40 cm" },
+  {
+    id: "40x30",
+    lengthCm: maxFlagLengthCm,
+    heightCm: maxFlagHeightCm,
+    label: "max 40 × 30 cm",
+  },
 ];
 
 export const defaultFlagSize = flagSizes[0];

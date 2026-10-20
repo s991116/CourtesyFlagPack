@@ -2,9 +2,9 @@
  * Metadata for one courtesy flag.
  *
  * Artwork lives in the repo (`asset.svg`). `ratio` is the official
- * proportion and can differ from the SVG viewBox, which is normalized
- * for the picker. One artwork can cover several names via `labels`;
- * `hemLabel` is the line that will be printed along the edge.
+ * hoist:fly proportion and can differ from the SVG viewBox. One artwork
+ * can cover several names via `labels`; `hemLabel` is the line that will
+ * be printed along the edge.
  *
  * Print-only fields (hem width, cut sheet, PDF asset) stay out of this
  * record until the sheet layout needs them.
@@ -16,8 +16,10 @@ export type Flag = {
   labels: readonly string[];
   hemLabel: string;
   ratio: {
-    width: number;
+    /** Hoist, the vertical side of the official proportion. */
     height: number;
+    /** Fly, the horizontal side of the official proportion. */
+    length: number;
   };
   asset: {
     svg: string;
@@ -26,18 +28,18 @@ export type Flag = {
 };
 
 export const regions = [
-  "Norden",
-  "Østersøen",
-  "Nordsøen",
-  "Atlanterhavet",
-  "Middelhavet",
+  "Nordic",
+  "Baltic",
+  "North Sea",
+  "Atlantic",
+  "Mediterranean",
 ] as const;
 
 export type Region = (typeof regions)[number];
 
 export type FlagSize = {
   id: string;
-  widthCm: number;
+  lengthCm: number;
   heightCm: number;
   label: string;
 };

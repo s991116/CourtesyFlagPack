@@ -7,51 +7,58 @@ import {
   defaultSheetFormat,
   sheetFormats,
 } from "./data/sheet";
+import { filterFlags } from "./lib/catalog";
+import { sheetCapacity } from "./lib/layout";
+import {
+  isSheetFull,
+  removeSelection,
+  toggleSelection,
+  trimSelection,
+} from "./lib/selection";
 import type { Region } from "./types/flag";
 
 export function App() {
   const [query, setQuery] = useState("");
-  const [region, setRegion] = useState<Region | "alle">("alle");
+  const [region, setRegion] = useState<Region | "all">("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [formatId, setFormatId] = useState(defaultSheetFormat.id);
 
   const format =
     sheetFormats.find((item) => item.id === formatId) ?? defaultSheetFormat;
+  const capacity = sheetCapacity(format.columns, format.rows);
+  const sheetFull = isSheetFull(selectedIds.length, capacity);
 
-  const visibleFlags = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return flags.filter((flag) => {
-      if (region !== "alle" && flag.region !== region) return false;
-      if (!needle) return true;
-      return (
-        flag.hemLabel.toLowerCase().includes(needle) ||
-        flag.iso.toLowerCase().includes(needle) ||
-        flag.labels.some((label) => label.toLowerCase().includes(needle)) ||
-        flag.region.toLowerCase().includes(needle)
-      );
-    });
-  }, [query, region]);
+  const visibleFlags = useMemo(
+    () => filterFlags(flags, query, region),
+    [query, region],
+  );
 
   function toggle(id: string) {
     setSelectedIds((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id],
+      toggleSelection(current, id, format.columns, format.rows),
+    );
+  }
+
+  function chooseFormat(id: string) {
+    const next = sheetFormats.find((item) => item.id === id) ?? format;
+    setFormatId(next.id);
+    setSelectedIds((current) =>
+      trimSelection(current, next.columns, next.rows),
     );
   }
 
   function remove(id: string) {
-    setSelectedIds((current) => current.filter((item) => item !== id));
+    setSelectedIds((current) => removeSelection(current, id));
   }
 
   return (
     <div className="page">
       <header className="mast">
-        <p className="eyebrow">Gæsteflag til print</p>
+        <p className="eyebrow">Courtesy flags for print</p>
         <h1>Courtesy Flag Pack</h1>
         <p className="lede">
-          Vælg de lande, der skal med på arket. Hvert flag har fast metadata,
-          så navn, mål og fil kan bruges, når PDF’en skal tegnes.
+          Choose the countries for the sheet. Each flag keeps its own metadata,
+          so the name, size, and file are ready when the PDF is drawn.
         </p>
       </header>
 
@@ -61,6 +68,7 @@ export function App() {
           selectedIds={selectedIds}
           query={query}
           region={region}
+          sheetFull={sheetFull}
           onQuery={setQuery}
           onRegion={setRegion}
           onToggle={toggle}
@@ -70,7 +78,7 @@ export function App() {
           format={format}
           formats={sheetFormats}
           size={defaultFlagSize}
-          onFormat={setFormatId}
+          onFormat={chooseFormat}
           onRemove={remove}
           onClear={() => setSelectedIds([])}
         />

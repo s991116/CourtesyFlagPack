@@ -105,7 +105,7 @@ h1 {
 .chip:focus-visible,
 .format:focus-visible,
 .flag-card:focus-visible,
-.picked button:focus-visible,
+.slot-remove:focus-visible,
 .clear:focus-visible,
 .preview-nav button:focus-visible {
   outline: 2px solid var(--mark);
@@ -121,8 +121,7 @@ h1 {
 .chip,
 .format,
 .clear,
-.preview-nav button,
-.picked button {
+.preview-nav button {
   border: 1px solid var(--line);
   background: var(--paper-2);
   border-radius: 999px;
@@ -155,6 +154,7 @@ h1 {
 .flag-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  align-items: start;
   gap: 12px;
   margin: 0;
   padding: 0;
@@ -177,23 +177,30 @@ h1 {
   background: var(--mark-soft);
 }
 
-.flag-art {
+.flag-card:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.flag-art,
+.slot-flag {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.flag-image {
   position: relative;
   display: block;
 }
 
-.flag-art img,
-.slot img,
-.picked img {
+.flag-image img {
   display: block;
   width: 100%;
-  object-fit: cover;
+  height: 100%;
+  object-fit: fill;
   background: #fff;
-}
-
-.flag-art img {
-  aspect-ratio: 4 / 3;
-  border-radius: 8px;
+  border: 1px solid #000;
 }
 
 .order-badge {
@@ -211,7 +218,11 @@ h1 {
 }
 
 .flag-name {
+  min-width: 0;
+  overflow: hidden;
   font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .flag-meta {
@@ -287,7 +298,6 @@ h1 {
 }
 
 .preview-nav button,
-.picked button,
 .clear {
   padding: 6px 10px;
   border-radius: 999px;
@@ -298,73 +308,70 @@ h1 {
   cursor: default;
 }
 
-.preview,
-.picked {
+.preview {
+  display: grid;
+  align-items: start;
+  gap: 14px 8px;
   margin: 12px 0 0;
   padding: 0;
   list-style: none;
 }
 
-.preview {
-  display: grid;
-  gap: 6px;
-}
-
 .slot {
-  aspect-ratio: 3 / 4;
-  border-radius: 6px;
-  overflow: hidden;
-  background: #fff;
-}
-
-.slot.is-empty {
   display: grid;
-  place-items: center;
-  border: 1px dashed var(--line);
-  background: transparent;
+  grid-template-rows: 1.3em auto 28px;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
 }
 
-.slot img {
-  height: 100%;
-  object-fit: contain;
+.slot-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.slot.is-empty .slot-name {
+  visibility: hidden;
+}
+
+.slot-flag {
+  align-items: flex-start;
 }
 
 .slot-empty {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.picked {
+.slot-remove {
+  justify-self: end;
   display: grid;
-  gap: 6px;
-  max-height: 240px;
-  overflow: auto;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  line-height: 0;
+  color: var(--ink);
 }
 
-.picked li {
-  display: grid;
-  grid-template-columns: auto 36px 1fr auto;
-  gap: 8px;
-  align-items: center;
+.slot-remove svg {
+  width: 28px;
+  height: 28px;
 }
 
-.picked img {
-  width: 36px;
-  height: 24px;
-  border-radius: 3px;
+.slot-remove:hover {
+  color: var(--mark);
 }
 
-.picked-index {
-  width: 1.2rem;
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.picked-name {
-  font-size: 0.92rem;
+.slot-remove-spacer {
+  display: block;
 }
 
 .clear {
@@ -383,7 +390,7 @@ h1 {
 
 @media (min-width: 960px) {
   .workspace {
-    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-columns: minmax(0, 1fr) 380px;
     align-items: start;
   }
 
