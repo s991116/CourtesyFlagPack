@@ -2,7 +2,9 @@ import { jsPDF } from "jspdf";
 import { printLayout, type PrintLayout } from "../config/print";
 import type { Flag } from "../types/flag";
 import { renderMirroredHem } from "./flagHem";
+import { stripClipPaintOpacity } from "./flagSvg";
 import { colorFrame } from "./hemColor";
+import type { FlagProportion } from "./flagSize";
 import { fittedLabelFontMm, labelBaselineFromCutMm } from "./labelFit";
 import { buildSheetGeometry, type SheetGeometry } from "./sheetGeometry";
 
@@ -81,8 +83,9 @@ export async function embedFlagArtwork(
   for (const placed of geometry.flags) {
     const svgText = svgById.get(placed.id);
     if (!svgText) continue;
+    const printable = stripClipPaintOpacity(svgText);
     const hem = await renderMirroredHem(
-      svgText,
+      printable,
       placed.artwork,
       colorFrame(placed),
       placed.label,
@@ -90,7 +93,7 @@ export async function embedFlagArtwork(
     for (const part of hem.pieces) {
       doc.addImage(part.png, "PNG", part.x, part.y, part.width, part.height);
     }
-    const parsed = new DOMParser().parseFromString(svgText, "image/svg+xml");
+    const parsed = new DOMParser().parseFromString(printable, "image/svg+xml");
     const element = parsed.documentElement;
     await svg2pdf(element, doc, {
       x: placed.artwork.x,
@@ -120,8 +123,9 @@ export async function buildSheetPdf(
   flags: readonly Flag[],
   columns: number,
   rows: number,
+  proportion: FlagProportion = "original",
 ): Promise<jsPDF> {
-  const geometry = buildSheetGeometry(flags, columns, rows);
+  const geometry = buildSheetGeometry(flags, columns, rows, printLayout, proportion);
   const doc = new jsPDF({
     unit: "mm",
     format: [geometry.pageWidthMm, geometry.pageHeightMm],
@@ -138,7 +142,8 @@ export async function downloadSheetPdf(
   flags: readonly Flag[],
   columns: number,
   rows: number,
+  proportion: FlagProportion = "original",
 ) {
-  const doc = await buildSheetPdf(flags, columns, rows);
+  const doc = await buildSheetPdf(flags, columns, rows, proportion);
   doc.save("courtesy-flags.pdf");
 }

@@ -1,6 +1,6 @@
 import { printLayout, type PrintLayout } from "../config/print";
 import type { Flag } from "../types/flag";
-import { fittedFlagSize } from "./flagSize";
+import { artworkSize, type FlagProportion } from "./flagSize";
 import { sheetCapacity } from "./layout";
 
 export type MmRect = {
@@ -59,6 +59,7 @@ export function buildSheetGeometry(
   columns: number,
   rows: number,
   layout: PrintLayout = printLayout,
+  proportion: FlagProportion = "original",
 ): SheetGeometry {
   const count = Math.min(flags.length, sheetCapacity(columns, rows));
   if (count === 0 || columns <= 0 || rows <= 0) return emptySheet;
@@ -66,7 +67,7 @@ export function buildSheetGeometry(
   const usedColumns = Math.min(columns, count);
   const usedRows = Math.ceil(count / columns);
   const pieces = flags.slice(0, count).map((flag, index) => {
-    const fitted = fittedFlagSize(flag);
+    const fitted = artworkSize(flag, proportion);
     const artworkWidth = fitted.lengthCm * 10;
     const artworkHeight = fitted.heightCm * 10;
     return {

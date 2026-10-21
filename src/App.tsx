@@ -8,6 +8,7 @@ import {
   sheetFormats,
 } from "./data/sheet";
 import { filterFlags } from "./lib/catalog";
+import type { FlagProportion } from "./lib/flagSize";
 import { sheetCapacity } from "./lib/layout";
 import {
   isSheetFull,
@@ -22,6 +23,7 @@ export function App() {
   const [region, setRegion] = useState<Region | "all">("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [formatId, setFormatId] = useState(defaultSheetFormat.id);
+  const [proportion, setProportion] = useState<FlagProportion>("original");
 
   const format =
     sheetFormats.find((item) => item.id === formatId) ?? defaultSheetFormat;
@@ -83,6 +85,8 @@ export function App() {
         <SheetPanel
           selectedIds={selectedIds.filter((id) => flagById(id))}
           format={format}
+          proportion={proportion}
+          onProportion={setProportion}
           onRemove={remove}
           onClear={() => setSelectedIds([])}
         />
@@ -92,6 +96,7 @@ export function App() {
         selectedIds={selectedIds.filter((id) => flagById(id))}
         columns={format.columns}
         rows={format.rows}
+        proportion={proportion}
       />
     </div>
   );

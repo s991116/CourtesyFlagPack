@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { flagById } from "../data/flags";
-import { flagImageStyle, slotFlagStyle } from "../lib/flagSize";
+import { flagImageStyle, slotFlagStyle, type FlagProportion } from "../lib/flagSize";
 import { paginateFlags } from "../lib/layout";
 import type { FlagSize, SheetFormat } from "../types/flag";
 
@@ -14,6 +14,8 @@ type SheetSetupProps = {
 type SheetPanelProps = {
   selectedIds: readonly string[];
   format: SheetFormat;
+  proportion: FlagProportion;
+  onProportion: (proportion: FlagProportion) => void;
   onRemove: (id: string) => void;
   onClear: () => void;
 };
@@ -22,6 +24,7 @@ type SheetDownloadProps = {
   selectedIds: readonly string[];
   columns: number;
   rows: number;
+  proportion: FlagProportion;
 };
 
 export function SheetSetup({ format, formats, size, onFormat }: SheetSetupProps) {
@@ -54,6 +57,8 @@ export function SheetSetup({ format, formats, size, onFormat }: SheetSetupProps)
 export function SheetPanel({
   selectedIds,
   format,
+  proportion,
+  onProportion,
   onRemove,
   onClear,
 }: SheetPanelProps) {
@@ -77,7 +82,30 @@ export function SheetPanel({
     <aside className="sheet" aria-label="Selected sheet">
       <header className="sheet-head">
         <h2>Sheet</h2>
-        <p>{countLabel}</p>
+        <div className="sheet-count-row">
+          <p>{countLabel}</p>
+          <fieldset className="proportion">
+            <legend>Flag shape</legend>
+            <label>
+              <input
+                type="radio"
+                name="flag-proportion"
+                checked={proportion === "original"}
+                onChange={() => onProportion("original")}
+              />
+              Original ratio
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="flag-proportion"
+                checked={proportion === "fixed"}
+                onChange={() => onProportion("fixed")}
+              />
+              30 × 40 cm
+            </label>
+          </fieldset>
+        </div>
       </header>
 
       {selectedIds.length === 0 ? (
@@ -125,7 +153,7 @@ export function SheetPanel({
                   </span>
                   <span className="slot-flag" style={slotFlagStyle()}>
                     {flag ? (
-                      <span className="flag-image" style={flagImageStyle(flag)}>
+                      <span className="flag-image" style={flagImageStyle(flag, proportion)}>
                         <img src={flag.asset.svg} alt="" />
                       </span>
                     ) : (
@@ -166,7 +194,12 @@ export function SheetPanel({
   );
 }
 
-export function SheetDownload({ selectedIds, columns, rows }: SheetDownloadProps) {
+export function SheetDownload({
+  selectedIds,
+  columns,
+  rows,
+  proportion,
+}: SheetDownloadProps) {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
 
@@ -179,7 +212,7 @@ export function SheetDownload({ selectedIds, columns, rows }: SheetDownloadProps
     setDownloadError("");
     try {
       const { downloadSheetPdf } = await import("../lib/sheetPdf");
-      await downloadSheetPdf(selected, columns, rows);
+      await downloadSheetPdf(selected, columns, rows, proportion);
     } catch {
       setDownloadError("The PDF could not be created.");
     } finally {

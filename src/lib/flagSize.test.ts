@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { flags } from "../data/flags";
 import { maxFlagHeightCm, maxFlagLengthCm } from "../data/sheet";
 import type { Flag } from "../types/flag";
-import { fittedFlagSize } from "./flagSize";
+import { artworkSize, fittedFlagSize } from "./flagSize";
 
 function flag(height: number, length: number): Flag {
   return {
@@ -40,5 +40,20 @@ describe("fitted flag size", () => {
     const denmark = fittedFlagSize(flag(28, 37));
     expect(denmark.heightCm).toBeCloseTo(30);
     expect(denmark.lengthCm).toBeCloseTo(39.642857);
+  });
+
+  it("fills 30 cm by 40 cm when the original ratio is off", () => {
+    expect(artworkSize(flag(1, 2), "fixed")).toEqual({
+      heightCm: 30,
+      lengthCm: 40,
+    });
+    expect(artworkSize(flag(28, 37), "fixed")).toEqual({
+      heightCm: 30,
+      lengthCm: 40,
+    });
+    expect(artworkSize(flag(1, 2), "original")).toEqual({
+      heightCm: 20,
+      lengthCm: 40,
+    });
   });
 });

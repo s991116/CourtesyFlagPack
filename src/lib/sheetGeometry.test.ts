@@ -43,6 +43,21 @@ describe("sheet geometry", () => {
     );
   });
 
+  it("fills 30 cm by 40 cm and keeps the hem, cut, and label", () => {
+    const source = flag("gb", 1, 2, "United Kingdom");
+    const sheet = buildSheetGeometry([source], 2, 2, layout, "fixed");
+    const placed = sheet.flags[0];
+
+    expect(placed.artwork.width).toBe(400);
+    expect(placed.artwork.height).toBe(300);
+    expect(placed.artwork.x - placed.cut.x).toBe(layout.hemMm);
+    expect(placed.artwork.y - placed.cut.y).toBe(layout.hemMm);
+    expect(cutOutline(sheet.marks, placed.cut)).toBe(true);
+    expect(placed.label.x).toBeCloseTo(placed.cut.x + layout.hemMm / 2);
+    expect(placed.label.y).toBeCloseTo(placed.artwork.y + placed.artwork.height / 2);
+    expect(placed.label.angle).toBe(90);
+  });
+
   it("places one flag at its finished size, with hem outside the artwork", () => {
     const source = flag("dk", 28, 37, "Denmark");
     const fitted = fittedFlagSize(source);
