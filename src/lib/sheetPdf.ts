@@ -2,8 +2,8 @@ import { jsPDF } from "jspdf";
 import { printLayout, type PrintLayout } from "../config/print";
 import type { Flag } from "../types/flag";
 import { renderMirroredHem } from "./flagHem";
-import { colorFrame, labelInk, type Rgb } from "./hemColor";
-import { fittedLabelFontMm } from "./labelFit";
+import { colorFrame } from "./hemColor";
+import { fittedLabelFontMm, labelBaselineFromCutMm } from "./labelFit";
 import { buildSheetGeometry, type SheetGeometry } from "./sheetGeometry";
 
 export function createSheetDocument(
@@ -24,7 +24,6 @@ export function drawSheetMarks(
   doc: jsPDF,
   geometry: SheetGeometry,
   layout: PrintLayout = printLayout,
-  inkById: ReadonlyMap<string, Rgb> = new Map(),
 ) {
   doc.setDrawColor(0);
   doc.setTextColor(0);
@@ -54,13 +53,22 @@ export function drawSheetMarks(
       layout.labelCoverage,
     );
     doc.setFontSize(fontMm * pointsPerMm);
-    const ink = inkById.get(flag.id) ?? { r: 0, g: 0, b: 0 };
-    doc.setTextColor(ink.r, ink.g, ink.b);
-    doc.text(flag.label.text, flag.label.x, flag.label.y, {
-      angle: flag.label.angle,
-      align: "center",
-      baseline: "middle",
-    });
+    doc.setTextColor(0);
+    // jsPDF applies alignment before it rotates, so a centered vertical name
+    // slides sideways by half its length. A 90° name runs upward, and a
+    // descender extends toward the flag, so the baseline is inset far enough
+    // that g stays in the fold.
+    const textWidthMm = doc.getTextWidth(flag.label.text);
+    doc.text(
+      flag.label.text,
+      flag.cut.x + labelBaselineFromCutMm(layout.hemMm, fontMm),
+      flag.label.y + textWidthMm / 2,
+      {
+        angle: flag.label.angle,
+        align: "left",
+        baseline: "alphabetic",
+      },
+    );
   }
 }
 
@@ -68,9 +76,8 @@ export async function embedFlagArtwork(
   doc: jsPDF,
   geometry: SheetGeometry,
   svgById: ReadonlyMap<string, string>,
-): Promise<Map<string, Rgb>> {
+): Promise<void> {
   const { svg2pdf } = await import("svg2pdf.js");
-  const inkById = new Map<string, Rgb>();
   for (const placed of geometry.flags) {
     const svgText = svgById.get(placed.id);
     if (!svgText) continue;
@@ -80,9 +87,6 @@ export async function embedFlagArtwork(
       colorFrame(placed),
       placed.label,
     );
-    if (hem.labelBackground) {
-      inkById.set(placed.id, labelInk(hem.labelBackground));
-    }
     for (const part of hem.pieces) {
       doc.addImage(part.png, "PNG", part.x, part.y, part.width, part.height);
     }
@@ -95,7 +99,6 @@ export async function embedFlagArtwork(
       height: placed.artwork.height,
     });
   }
-  return inkById;
 }
 
 export async function loadFlagSvgs(
@@ -126,8 +129,8 @@ export async function buildSheetPdf(
       geometry.pageWidthMm > geometry.pageHeightMm ? "landscape" : "portrait",
   });
   const svgById = await loadFlagSvgs(flags.slice(0, geometry.flags.length));
-  const inkById = await embedFlagArtwork(doc, geometry, svgById);
-  drawSheetMarks(doc, geometry, printLayout, inkById);
+  await embedFlagArtwork(doc, geometry, svgById);
+  drawSheetMarks(doc, geometry, printLayout);
   return doc;
 }
 

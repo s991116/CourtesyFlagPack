@@ -9,7 +9,7 @@ const layout: PrintLayout = {
   hemMm: 10,
   gutterMm: 4,
   outerMarginMm: 8,
-  labelCoverage: 0.9,
+  labelCoverage: 0.8,
   cutStrokeMm: 2,
   cutDashMm: 2.5,
   cutGapMm: 2.5,
@@ -268,7 +268,7 @@ describe("sheet geometry", () => {
     expect(printLayout.foldStrokeMm).toBe(1);
     expect(printLayout.foldDashMm).toBe(1.5);
     expect(printLayout.foldGapMm).toBe(1.5);
-    expect(printLayout.labelCoverage).toBe(0.9);
+    expect(printLayout.labelCoverage).toBe(0.8);
   });
 });
 

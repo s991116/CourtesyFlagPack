@@ -10,8 +10,11 @@ export const printLayout = {
   gutterMm: 8,
   /** Margin from the page edge to the outer cut pieces. */
   outerMarginMm: 8,
-  /** Share of the left fold's width used by the country name. */
-  labelCoverage: 0.9,
+  /**
+   * Share of the left fold used by the letters, from the top of a tall letter
+   * to the tail of g. The rest is clear: half toward the cut, half toward the fold.
+   */
+  labelCoverage: 0.8,
   /** Cut line around each flag. */
   cutStrokeMm: 2,
   cutDashMm: 2.5,

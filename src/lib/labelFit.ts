@@ -1,9 +1,16 @@
 import { printLayout } from "../config/print";
 
 /**
+ * Helvetica extents, in em, from the Adobe font metrics.
+ * `d` reaches 0.729 above the baseline. `g` reaches 0.217 below it.
+ */
+export const helveticaAscentEm = 0.729;
+export const helveticaDescentEm = 0.217;
+
+/**
  * Letter size for the country name in the left fold.
- * The letters fill most of the fold's width, and the name stays
- * within the flag plus the folds above and below.
+ * About a tenth of the fold stays clear above the letters and below g.
+ * The name also stays within the flag plus the folds above and below.
  */
 export function fittedLabelFontMm(
   hemWidthMm: number,
@@ -14,8 +21,17 @@ export function fittedLabelFontMm(
   if (hemWidthMm <= 0 || maxLengthMm <= 0 || textWidthPerMm <= 0 || coverage <= 0) {
     return 0;
   }
-  const preferredMm = hemWidthMm * coverage;
-  const lengthAtPreferred = preferredMm * textWidthPerMm;
-  if (lengthAtPreferred <= maxLengthMm) return preferredMm;
-  return maxLengthMm / textWidthPerMm;
+  const inkPerEm = helveticaAscentEm + helveticaDescentEm;
+  const inkBudget = Math.min(hemWidthMm, hemWidthMm * coverage);
+  const byInk = inkBudget / inkPerEm;
+  const byLength = maxLengthMm / textWidthPerMm;
+  return Math.min(byInk, byLength);
+}
+
+/** Distance from the cut edge to the baseline, so g stays inside the fold. */
+export function labelBaselineFromCutMm(hemMm: number, fontMm: number): number {
+  const ascentMm = fontMm * helveticaAscentEm;
+  const descentMm = fontMm * helveticaDescentEm;
+  const slack = Math.max(0, hemMm - ascentMm - descentMm);
+  return slack / 2 + ascentMm;
 }
