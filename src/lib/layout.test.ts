@@ -23,6 +23,10 @@ describe("placing flags on pages", () => {
     expect(paginateFlags(["dk", "se"], 2, 2)).toEqual([["dk", "se"]]);
   });
 
+  it("returns no pages when the grid has no slots", () => {
+    expect(paginateFlags(["dk"], 0, 2)).toEqual([]);
+  });
+
   it("fills a page before starting the next", () => {
     expect(paginateFlags(["dk", "se", "no", "fi", "is"], 2, 2)).toEqual([
       ["dk", "se", "no", "fi"],

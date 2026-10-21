@@ -1,14 +1,20 @@
 # Courtesy Flag Pack
 
-A draft web app for choosing courtesy flags for a print sheet.
+Choose courtesy flags and download a print-size PDF.
 
-Search and select countries, pick a format (2×2, 3×4, or 4×5), and see how the flags fall across pages. Each flag keeps its official ratio inside a frame at most 40 cm long and 30 cm high. A print-size PDF is the next step.
+Search and select countries, pick a format (2×2, 3×4, or 4×5), and download the sheet. Each flag keeps its official ratio, at most 40 cm long and 30 cm high.
+
+The sheet leaves room at the page edge and between the flags. Each flag has fold cloth on every side, and the motif outside the fold is mirrored across that fold. A dashed line marks where to cut around each piece, and another marks the fold along each flag edge. The country name is printed in the left fold. The measurements live in `src/config/print.ts`.
 
 ## Run locally
 
 ```bash
 npm install
 npm run dev
+```
+
+```bash
+npm test
 ```
 
 ## Metadata

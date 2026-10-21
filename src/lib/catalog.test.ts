@@ -34,4 +34,18 @@ describe("flag search", () => {
   it("keeps the region limit even when the search matches another region", () => {
     expect(filterFlags(sample, "france", "Nordic")).toEqual([]);
   });
+
+  it("matches an alternate name that is not the text printed in the hem", () => {
+    const netherlands = {
+      ...sample[0],
+      id: "nl",
+      iso: "nl",
+      labels: ["Netherlands", "Holland"],
+      hemLabel: "Netherlands",
+      region: "North Sea" as const,
+    };
+    expect(filterFlags([netherlands], "holland", "all").map((flag) => flag.id)).toEqual([
+      "nl",
+    ]);
+  });
 });

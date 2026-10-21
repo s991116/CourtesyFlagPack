@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { FlagPicker } from "./components/FlagPicker";
-import { SheetPanel } from "./components/SheetPanel";
+import { SheetDownload, SheetPanel, SheetSetup } from "./components/SheetPanel";
 import { flagById, flags } from "./data/flags";
 import {
   defaultFlagSize,
@@ -57,10 +57,17 @@ export function App() {
         <p className="eyebrow">Courtesy flags for print</p>
         <h1>Courtesy Flag Pack</h1>
         <p className="lede">
-          Choose the countries for the sheet. Each flag keeps its own metadata,
-          so the name, size, and file are ready when the PDF is drawn.
+          Choose the countries for the sheet and download a PDF ready to be
+          printed.
         </p>
       </header>
+
+      <SheetSetup
+        format={format}
+        formats={sheetFormats}
+        size={defaultFlagSize}
+        onFormat={chooseFormat}
+      />
 
       <div className="workspace">
         <FlagPicker
@@ -76,13 +83,16 @@ export function App() {
         <SheetPanel
           selectedIds={selectedIds.filter((id) => flagById(id))}
           format={format}
-          formats={sheetFormats}
-          size={defaultFlagSize}
-          onFormat={chooseFormat}
           onRemove={remove}
           onClear={() => setSelectedIds([])}
         />
       </div>
+
+      <SheetDownload
+        selectedIds={selectedIds.filter((id) => flagById(id))}
+        columns={format.columns}
+        rows={format.rows}
+      />
     </div>
   );
 }

@@ -1,25 +1,59 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { flagById } from "../data/flags";
 import { flagImageStyle, slotFlagStyle } from "../lib/flagSize";
 import { paginateFlags } from "../lib/layout";
 import type { FlagSize, SheetFormat } from "../types/flag";
 
-type SheetPanelProps = {
-  selectedIds: readonly string[];
+type SheetSetupProps = {
   format: SheetFormat;
   formats: readonly SheetFormat[];
   size: FlagSize;
   onFormat: (id: string) => void;
+};
+
+type SheetPanelProps = {
+  selectedIds: readonly string[];
+  format: SheetFormat;
   onRemove: (id: string) => void;
   onClear: () => void;
 };
 
+type SheetDownloadProps = {
+  selectedIds: readonly string[];
+  columns: number;
+  rows: number;
+};
+
+export function SheetSetup({ format, formats, size, onFormat }: SheetSetupProps) {
+  return (
+    <div className="sheet-setup">
+      <dl className="sheet-facts">
+        <dt>Flag size</dt>
+        <dt>Slots</dt>
+        <dd>{size.label}</dd>
+        <dd>
+          <div className="format-picker" role="group" aria-label="Format">
+            {formats.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={item.id === format.id ? "format is-on" : "format"}
+                aria-pressed={item.id === format.id}
+                onClick={() => onFormat(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </dd>
+      </dl>
+    </div>
+  );
+}
+
 export function SheetPanel({
   selectedIds,
   format,
-  formats,
-  size,
-  onFormat,
   onRemove,
   onClear,
 }: SheetPanelProps) {
@@ -28,6 +62,10 @@ export function SheetPanel({
   const safePage = Math.min(pageIndex, Math.max(pages.length - 1, 0));
   const page = pages[safePage] ?? [];
   const slots = format.columns * format.rows;
+
+  useEffect(() => {
+    setPageIndex(0);
+  }, [format.id]);
   const countLabel =
     selectedIds.length === 0
       ? "No flags selected"
@@ -41,36 +79,6 @@ export function SheetPanel({
         <h2>Sheet</h2>
         <p>{countLabel}</p>
       </header>
-
-      <dl className="sheet-facts">
-        <div>
-          <dt>Flag size</dt>
-          <dd>{size.label}</dd>
-        </div>
-        <div>
-          <dt>Slots</dt>
-          <dd>
-            {format.columns} × {format.rows}
-          </dd>
-        </div>
-      </dl>
-
-      <div className="format-picker" role="group" aria-label="Format">
-        {formats.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={item.id === format.id ? "format is-on" : "format"}
-            aria-pressed={item.id === format.id}
-            onClick={() => {
-              setPageIndex(0);
-              onFormat(item.id);
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
 
       {selectedIds.length === 0 ? (
         <p className="sheet-empty">
@@ -154,10 +162,44 @@ export function SheetPanel({
           </button>
         </>
       )}
+    </aside>
+  );
+}
 
+export function SheetDownload({ selectedIds, columns, rows }: SheetDownloadProps) {
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
+
+  async function download() {
+    const selected = selectedIds.flatMap((id) => {
+      const flag = flagById(id);
+      return flag ? [flag] : [];
+    });
+    setDownloading(true);
+    setDownloadError("");
+    try {
+      const { downloadSheetPdf } = await import("../lib/sheetPdf");
+      await downloadSheetPdf(selected, columns, rows);
+    } catch {
+      setDownloadError("The PDF could not be created.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  return (
+    <div className="sheet-footer">
+      <button
+        type="button"
+        className="download"
+        disabled={selectedIds.length === 0 || downloading}
+        onClick={() => void download()}
+      >
+        {downloading ? "Preparing PDF…" : "Download PDF"}
+      </button>
+      {downloadError ? <p className="download-error">{downloadError}</p> : null}
       <p className="sheet-note">
-        A print-size PDF will be built from this selection. The name from the
-        metadata is printed along the edge
+        The PDF is at print size. The country name is printed in the hem
         {selectedIds[0] ? (
           <>
             , for example{" "}
@@ -168,6 +210,6 @@ export function SheetPanel({
         ) : null}
         .
       </p>
-    </aside>
+    </div>
   );
 }
