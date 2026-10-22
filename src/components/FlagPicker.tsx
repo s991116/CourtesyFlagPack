@@ -1,7 +1,8 @@
 import { flagKindLabel } from "../lib/catalog";
-import { flagImageStyle } from "../lib/flagSize";
+import { catalogStageStyle } from "../lib/flagSize";
 import type { Flag, FlagKind, Region } from "../types/flag";
 import { flagKinds, regions } from "../types/flag";
+import { FlagArtwork } from "./FlagArtwork";
 
 type FlagPickerProps = {
   flags: readonly Flag[];
@@ -86,10 +87,6 @@ export function FlagPicker({
         </div>
       </div>
 
-      <p className="result-count">
-        {flags.length === 1 ? "1 flag" : `${flags.length} flags`}
-      </p>
-
       {flags.length === 0 ? (
         <p className="empty-filter">No flags match the search.</p>
       ) : (
@@ -107,28 +104,27 @@ export function FlagPicker({
                   disabled={locked}
                   onClick={() => onToggle(flag.id)}
                 >
-                  <span className="flag-art">
-                    <span className="flag-image" style={flagImageStyle(flag)}>
-                      <img src={flag.asset.svg} alt="" />
-                      {position ? (
-                        <span className="order-badge">{position}</span>
-                      ) : null}
+                  <span className="flag-art" style={catalogStageStyle()}>
+                    <FlagArtwork flag={flag} fit="catalog" />
+                  </span>
+                  <span className="flag-copy">
+                    <span className="flag-name" title={flag.hemLabel}>
+                      {flag.hemLabel}
+                    </span>
+                    <span
+                      className={
+                        flag.kind === "regional"
+                          ? "flag-kind is-regional"
+                          : "flag-kind"
+                      }
+                    >
+                      {flag.kind === "regional" ? "Regional" : "National"} -{" "}
+                      {flag.iso.toUpperCase()}
                     </span>
                   </span>
-                  <span className="flag-name" title={flag.hemLabel}>
-                    {flag.hemLabel}
-                  </span>
-                  <span
-                    className={
-                      flag.kind === "regional" ? "flag-kind is-regional" : "flag-kind"
-                    }
-                  >
-                    {flagKindLabel(flag.kind)}
-                  </span>
-                  <span className="flag-meta">
-                    {flag.iso.toUpperCase()} · {flag.ratio.height}:
-                    {flag.ratio.length}
-                  </span>
+                  {position ? (
+                    <span className="order-badge">{position}</span>
+                  ) : null}
                 </button>
               </li>
             );

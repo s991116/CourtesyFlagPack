@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { flags } from "../data/flags";
 import { maxFlagHeightCm, maxFlagLengthCm } from "../data/sheet";
 import type { Flag } from "../types/flag";
-import { artworkSize, fittedFlagSize } from "./flagSize";
+import { artworkSize, catalogFlagStyle, fittedFlagSize } from "./flagSize";
 
 function flag(height: number, length: number): Flag {
   return {
@@ -56,5 +56,31 @@ describe("fitted flag size", () => {
       heightCm: 20,
       lengthCm: 40,
     });
+  });
+
+  it("shrinks catalog flags that are taller than Albania", () => {
+    const albania = flags.find((item) => item.id === "al");
+    const switzerland = flags.find((item) => item.id === "ch");
+    const unitedKingdom = flags.find((item) => item.id === "gb");
+    if (!albania || !switzerland || !unitedKingdom) {
+      throw new Error("missing catalog flag");
+    }
+    const stage = fittedFlagSize(albania).heightCm;
+
+    expect(catalogFlagStyle(albania).width).toBe("100%");
+    expect(parseFloat(catalogFlagStyle(switzerland).width)).toBeCloseTo(
+      (30 / maxFlagLengthCm) * (stage / 30) * 100,
+    );
+    expect(catalogFlagStyle(switzerland).aspectRatio).toBe("30 / 30");
+    expect(catalogFlagStyle(unitedKingdom).width).toBe("100%");
+
+    for (const item of flags) {
+      const size = fittedFlagSize(item);
+      const scale = Math.min(1, stage / size.heightCm);
+      expect(size.heightCm * scale).toBeLessThanOrEqual(stage + 1e-9);
+      expect(catalogFlagStyle(item).aspectRatio).toBe(
+        `${size.lengthCm} / ${size.heightCm}`,
+      );
+    }
   });
 });

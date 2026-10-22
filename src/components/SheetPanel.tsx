@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { flagById } from "../data/flags";
-import { flagImageStyle, slotFlagStyle, type FlagProportion } from "../lib/flagSize";
+import { slotFlagStyle, type FlagProportion } from "../lib/flagSize";
+import { FlagArtwork } from "./FlagArtwork";
 import { paginateFlags } from "../lib/layout";
 import type { FlagSize, SheetFormat } from "../types/flag";
 
@@ -153,9 +154,7 @@ export function SheetPanel({
                   </span>
                   <span className="slot-flag" style={slotFlagStyle()}>
                     {flag ? (
-                      <span className="flag-image" style={flagImageStyle(flag, proportion)}>
-                        <img src={flag.asset.svg} alt="" />
-                      </span>
+                      <FlagArtwork flag={flag} proportion={proportion} />
                     ) : (
                       <span className="slot-empty">Empty</span>
                     )}

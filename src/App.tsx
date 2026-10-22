@@ -57,20 +57,12 @@ export function App() {
   return (
     <div className="page">
       <header className="mast">
-        <p className="eyebrow">Courtesy flags for print</p>
-        <h1>Courtesy Flag Pack</h1>
+        <h1>Courtesy flags for print</h1>
         <p className="lede">
           Choose the countries for the sheet and download a PDF ready to be
           printed.
         </p>
       </header>
-
-      <SheetSetup
-        format={format}
-        formats={sheetFormats}
-        size={defaultFlagSize}
-        onFormat={chooseFormat}
-      />
 
       <div className="workspace">
         <FlagPicker
@@ -84,6 +76,12 @@ export function App() {
           onRegion={setRegion}
           onKind={setKind}
           onToggle={toggle}
+        />
+        <SheetSetup
+          format={format}
+          formats={sheetFormats}
+          size={defaultFlagSize}
+          onFormat={chooseFormat}
         />
         <SheetPanel
           selectedIds={selectedIds.filter((id) => flagById(id))}
