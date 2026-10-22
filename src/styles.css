@@ -235,6 +235,16 @@ h1 {
   text-overflow: ellipsis;
 }
 
+.flag-kind {
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+}
+
+.flag-kind.is-regional {
+  color: var(--mark);
+}
+
 .flag-meta {
   color: var(--muted);
   font-size: 0.78rem;

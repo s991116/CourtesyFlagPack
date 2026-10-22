@@ -16,11 +16,12 @@ import {
   toggleSelection,
   trimSelection,
 } from "./lib/selection";
-import type { Region } from "./types/flag";
+import type { FlagKind, Region } from "./types/flag";
 
 export function App() {
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState<Region | "all">("all");
+  const [kind, setKind] = useState<FlagKind | "all">("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [formatId, setFormatId] = useState(defaultSheetFormat.id);
   const [proportion, setProportion] = useState<FlagProportion>("original");
@@ -31,8 +32,8 @@ export function App() {
   const sheetFull = isSheetFull(selectedIds.length, capacity);
 
   const visibleFlags = useMemo(
-    () => filterFlags(flags, query, region),
-    [query, region],
+    () => filterFlags(flags, query, region, kind),
+    [query, region, kind],
   );
 
   function toggle(id: string) {
@@ -77,9 +78,11 @@ export function App() {
           selectedIds={selectedIds}
           query={query}
           region={region}
+          kind={kind}
           sheetFull={sheetFull}
           onQuery={setQuery}
           onRegion={setRegion}
+          onKind={setKind}
           onToggle={toggle}
         />
         <SheetPanel

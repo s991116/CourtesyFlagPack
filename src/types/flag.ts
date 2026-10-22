@@ -24,18 +24,31 @@ export type Flag = {
   asset: {
     svg: string;
   };
+  /** Sailing area used by the picker filter. */
   region: Region;
+  /**
+   * National is the courtesy flag for that place.
+   * Regional is an optional flag flown in addition to the national one.
+   */
+  kind: FlagKind;
 };
 
 export const regions = [
-  "Nordic",
-  "Baltic",
-  "North Sea",
-  "Atlantic",
-  "Mediterranean",
+  "Europe",
+  "Caribbean",
+  "North America",
+  "South America",
+  "Oceania",
+  "Indian Ocean",
+  "Asia",
+  "Africa",
 ] as const;
 
 export type Region = (typeof regions)[number];
+
+export const flagKinds = ["national", "regional"] as const;
+
+export type FlagKind = (typeof flagKinds)[number];
 
 export type FlagSize = {
   id: string;

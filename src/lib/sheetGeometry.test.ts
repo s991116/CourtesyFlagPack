@@ -26,7 +26,8 @@ function flag(id: string, height: number, length: number, label = id): Flag {
     hemLabel: label,
     ratio: { height, length },
     asset: { svg: `/flags/${id}.svg` },
-    region: "Nordic",
+    region: "Europe",
+    kind: "national",
   };
 }
 

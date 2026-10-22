@@ -12,7 +12,8 @@ function flag(height: number, length: number): Flag {
     hemLabel: "Test",
     ratio: { height, length },
     asset: { svg: "/flags/test.svg" },
-    region: "Nordic",
+    region: "Europe",
+    kind: "national",
   };
 }
 

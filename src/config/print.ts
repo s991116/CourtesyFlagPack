@@ -12,7 +12,8 @@ export const printLayout = {
   outerMarginMm: 8,
   /**
    * Share of the left fold used by the letters, from the top of a tall letter
-   * to the tail of g. The rest is clear: half toward the cut, half toward the fold.
+   * to the tail of g, including the white outline. The rest is clear: half
+   * toward the cut, half toward the fold.
    */
   labelCoverage: 0.8,
   /** Cut line around each flag. */

@@ -2,10 +2,10 @@ import { jsPDF } from "jspdf";
 import { printLayout, type PrintLayout } from "../config/print";
 import type { Flag } from "../types/flag";
 import { renderMirroredHem } from "./flagHem";
-import { stripClipPaintOpacity } from "./flagSvg";
+import { stretchFlagArtwork, stripClipPaintOpacity } from "./flagSvg";
 import { colorFrame } from "./hemColor";
 import type { FlagProportion } from "./flagSize";
-import { fittedLabelFontMm, labelBaselineFromCutMm } from "./labelFit";
+import { fittedLabelFontMm, labelBaselineFromCutMm, labelOutlineEm } from "./labelFit";
 import { buildSheetGeometry, type SheetGeometry } from "./sheetGeometry";
 
 export function createSheetDocument(
@@ -55,22 +55,32 @@ export function drawSheetMarks(
       layout.labelCoverage,
     );
     doc.setFontSize(fontMm * pointsPerMm);
+    doc.setDrawColor(255);
     doc.setTextColor(0);
+    doc.setLineWidth(fontMm * labelOutlineEm);
+    doc.setLineJoin("round");
+    doc.setLineCap("round");
     // jsPDF applies alignment before it rotates, so a centered vertical name
     // slides sideways by half its length. A 90° name runs upward, and a
     // descender extends toward the flag, so the baseline is inset far enough
-    // that g stays in the fold.
+    // that the white outline around g stays in the fold. The white stroke is
+    // drawn first and the black fill on top, so the outline stays outside the letter.
     const textWidthMm = doc.getTextWidth(flag.label.text);
-    doc.text(
-      flag.label.text,
-      flag.cut.x + labelBaselineFromCutMm(layout.hemMm, fontMm),
-      flag.label.y + textWidthMm / 2,
-      {
-        angle: flag.label.angle,
-        align: "left",
-        baseline: "alphabetic",
-      },
-    );
+    const textX = flag.cut.x + labelBaselineFromCutMm(layout.hemMm, fontMm);
+    const textY = flag.label.y + textWidthMm / 2;
+    const textOptions = {
+      angle: flag.label.angle,
+      align: "left" as const,
+      baseline: "alphabetic" as const,
+    };
+    doc.text(flag.label.text, textX, textY, {
+      ...textOptions,
+      renderingMode: "stroke",
+    });
+    doc.text(flag.label.text, textX, textY, {
+      ...textOptions,
+      renderingMode: "fill",
+    });
   }
 }
 
@@ -83,7 +93,7 @@ export async function embedFlagArtwork(
   for (const placed of geometry.flags) {
     const svgText = svgById.get(placed.id);
     if (!svgText) continue;
-    const printable = stripClipPaintOpacity(svgText);
+    const printable = stretchFlagArtwork(stripClipPaintOpacity(svgText));
     const hem = await renderMirroredHem(
       printable,
       placed.artwork,

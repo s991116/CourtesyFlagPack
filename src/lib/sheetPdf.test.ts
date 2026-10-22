@@ -6,6 +6,7 @@ import {
   helveticaAscentEm,
   helveticaDescentEm,
   labelBaselineFromCutMm,
+  labelOutlineEm,
 } from "./labelFit";
 import { createSheetDocument } from "./sheetPdf";
 import { buildSheetGeometry } from "./sheetGeometry";
@@ -19,15 +20,28 @@ function textAnchor(
   name: string,
   pageHeightMm: number,
 ): { xMm: number; yFromTop: number } {
-  const match = textBlock(output, name).match(
-    /([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) Tm/,
-  );
-  if (!match) throw new Error(`No text position for ${name}`);
+  return textAnchors(output, name, pageHeightMm)[0];
+}
+
+function textAnchors(
+  output: string,
+  name: string,
+  pageHeightMm: number,
+): { xMm: number; yFromTop: number }[] {
   const pointsPerMm = 72 / 25.4;
-  return {
-    xMm: Number(match[5]) / pointsPerMm,
-    yFromTop: pageHeightMm - Number(match[6]) / pointsPerMm,
-  };
+  return output
+    .split("BT")
+    .filter((part) => part.includes(`(${name})`))
+    .map((part) => {
+      const match = part.match(
+        /([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) Tm/,
+      );
+      if (!match) throw new Error(`No text position for ${name}`);
+      return {
+        xMm: Number(match[5]) / pointsPerMm,
+        yFromTop: pageHeightMm - Number(match[6]) / pointsPerMm,
+      };
+    });
 }
 
 function flag(id: string, height: number, length: number, label: string): Flag {
@@ -38,7 +52,8 @@ function flag(id: string, height: number, length: number, label: string): Flag {
     hemLabel: label,
     ratio: { height, length },
     asset: { svg: `/flags/${id}.svg` },
-    region: "Nordic",
+    region: "Europe",
+    kind: "national",
   };
 }
 
@@ -54,7 +69,7 @@ describe("sheet pdf page", () => {
     const pointsPerMm = 72 / 25.4;
     expect(doc.getFontSize() / pointsPerMm).toBeCloseTo(
       (printLayout.hemMm * printLayout.labelCoverage) /
-        (helveticaAscentEm + helveticaDescentEm),
+        (helveticaAscentEm + helveticaDescentEm + labelOutlineEm),
       1,
     );
     expect(doc.getTextWidth("Denmark")).toBeLessThanOrEqual(placed.cut.height);
@@ -84,10 +99,12 @@ describe("sheet pdf page", () => {
       );
       doc.setFontSize(fontMm * pointsPerMm);
 
-      expect(fontMm * (helveticaAscentEm + helveticaDescentEm)).toBeLessThanOrEqual(
-        printLayout.hemMm * printLayout.labelCoverage + 1e-9,
+      expect(
+        fontMm * (helveticaAscentEm + helveticaDescentEm + labelOutlineEm),
+      ).toBeLessThanOrEqual(printLayout.hemMm * printLayout.labelCoverage + 1e-9);
+      expect(doc.getTextWidth(placed.label.text) + fontMm * labelOutlineEm).toBeLessThanOrEqual(
+        placed.cut.height + 1e-9,
       );
-      expect(doc.getTextWidth(placed.label.text)).toBeLessThanOrEqual(placed.cut.height);
       expect(placed.label.x).toBeCloseTo(placed.cut.x + printLayout.hemMm / 2);
       expect(placed.label.x).toBeLessThan(placed.artwork.x);
     }
@@ -123,18 +140,30 @@ describe("sheet pdf page", () => {
       placed.cut.x + labelBaselineFromCutMm(printLayout.hemMm, fontMm),
       1,
     );
+    const halo = (fontMm * labelOutlineEm) / 2;
     const clearance = (printLayout.hemMm * (1 - printLayout.labelCoverage)) / 2;
-    expect(anchor.xMm - fontMm * helveticaAscentEm - placed.cut.x).toBeCloseTo(
+    expect(anchor.xMm - fontMm * helveticaAscentEm - halo - placed.cut.x).toBeCloseTo(
       clearance,
       1,
     );
-    expect(placed.artwork.x - (anchor.xMm + fontMm * helveticaDescentEm)).toBeCloseTo(
-      clearance,
-      1,
-    );
+    expect(
+      placed.artwork.x - (anchor.xMm + fontMm * helveticaDescentEm + halo),
+    ).toBeCloseTo(clearance, 1);
     expect(anchor.xMm).toBeGreaterThan(finland.cut.x + finland.cut.width);
     expect(anchor.yFromTop - textWidthMm / 2).toBeCloseTo(placed.label.y, 1);
-    expect(textBlock(doc.output(), "United Kingdom")).toMatch(/\n0\.? g\n/);
+    const output = doc.output();
+    const [outline, fill] = textAnchors(output, "United Kingdom", geometry.pageHeightMm);
+    expect(fill).toEqual(outline);
+    const blocks = output.split("BT").filter((part) => part.includes("(United Kingdom)"));
+    const shownAt = output.indexOf("(United Kingdom)");
+    const beforeText = output.slice(Math.max(0, shownAt - 350), shownAt);
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0]).toMatch(/\n1 Tr\n/);
+    expect(blocks[1]).toMatch(/\n0\.? g\n/);
+    expect(blocks[1]).toMatch(/\n0 Tr\n/);
+    expect(beforeText).toMatch(/1\. G\n/);
+    const widths = [...beforeText.matchAll(/([\d.]+) w/g)].map((match) => Number(match[1]));
+    expect(widths.at(-1)! / pointsPerMm).toBeCloseTo(fontMm * labelOutlineEm, 2);
   });
 
   it("draws the cut and fold lines with their dash patterns", () => {

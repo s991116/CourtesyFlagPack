@@ -1,177 +1,26 @@
 import type { Flag } from "../types/flag";
+import { flagEntries } from "./flagEntries";
 
 /**
- * Sample catalog for the picker.
- * SVG files are the 4×3 set from flag-icons (MIT), stored under public/flags.
- * See public/flags/LICENSE.txt.
+ * Courtesy-flag catalog.
+ * Artwork is stored under public/flags. See public/flags/LICENSE.txt.
  */
-export const flags: readonly Flag[] = [
-  {
-    id: "dk",
-    iso: "dk",
-    labels: ["Denmark"],
-    hemLabel: "Denmark",
-    ratio: { height: 28, length: 37 },
-    asset: { svg: "/flags/dk.svg" },
-    region: "Nordic",
-  },
-  {
-    id: "se",
-    iso: "se",
-    labels: ["Sweden"],
-    hemLabel: "Sweden",
-    ratio: { height: 5, length: 8 },
-    asset: { svg: "/flags/se.svg" },
-    region: "Nordic",
-  },
-  {
-    id: "no",
-    iso: "no",
-    labels: ["Norway"],
-    hemLabel: "Norway",
-    ratio: { height: 8, length: 11 },
-    asset: { svg: "/flags/no.svg" },
-    region: "Nordic",
-  },
-  {
-    id: "fi",
-    iso: "fi",
-    labels: ["Finland"],
-    hemLabel: "Finland",
-    ratio: { height: 11, length: 18 },
-    asset: { svg: "/flags/fi.svg" },
-    region: "Nordic",
-  },
-  {
-    id: "is",
-    iso: "is",
-    labels: ["Iceland"],
-    hemLabel: "Iceland",
-    ratio: { height: 18, length: 25 },
-    asset: { svg: "/flags/is.svg" },
-    region: "Nordic",
-  },
-  {
-    id: "ee",
-    iso: "ee",
-    labels: ["Estonia"],
-    hemLabel: "Estonia",
-    ratio: { height: 7, length: 11 },
-    asset: { svg: "/flags/ee.svg" },
-    region: "Baltic",
-  },
-  {
-    id: "lv",
-    iso: "lv",
-    labels: ["Latvia"],
-    hemLabel: "Latvia",
-    ratio: { height: 1, length: 2 },
-    asset: { svg: "/flags/lv.svg" },
-    region: "Baltic",
-  },
-  {
-    id: "lt",
-    iso: "lt",
-    labels: ["Lithuania"],
-    hemLabel: "Lithuania",
-    ratio: { height: 3, length: 5 },
-    asset: { svg: "/flags/lt.svg" },
-    region: "Baltic",
-  },
-  {
-    id: "pl",
-    iso: "pl",
-    labels: ["Poland"],
-    hemLabel: "Poland",
-    ratio: { height: 5, length: 8 },
-    asset: { svg: "/flags/pl.svg" },
-    region: "Baltic",
-  },
-  {
-    id: "de",
-    iso: "de",
-    labels: ["Germany"],
-    hemLabel: "Germany",
-    ratio: { height: 3, length: 5 },
-    asset: { svg: "/flags/de.svg" },
-    region: "North Sea",
-  },
-  {
-    id: "nl",
-    iso: "nl",
-    labels: ["Netherlands"],
-    hemLabel: "Netherlands",
-    ratio: { height: 2, length: 3 },
-    asset: { svg: "/flags/nl.svg" },
-    region: "North Sea",
-  },
-  {
-    id: "gb",
-    iso: "gb",
-    labels: ["United Kingdom"],
-    hemLabel: "United Kingdom",
-    ratio: { height: 1, length: 2 },
-    asset: { svg: "/flags/gb.svg" },
-    region: "North Sea",
-  },
-  {
-    id: "fr",
-    iso: "fr",
-    labels: ["France"],
-    hemLabel: "France",
-    ratio: { height: 2, length: 3 },
-    asset: { svg: "/flags/fr.svg" },
-    region: "Atlantic",
-  },
-  {
-    id: "pt",
-    iso: "pt",
-    labels: ["Portugal"],
-    hemLabel: "Portugal",
-    ratio: { height: 2, length: 3 },
-    asset: { svg: "/flags/pt.svg" },
-    region: "Atlantic",
-  },
-  {
-    id: "es",
-    iso: "es",
-    labels: ["Spain"],
-    hemLabel: "Spain",
-    ratio: { height: 2, length: 3 },
-    asset: { svg: "/flags/es.svg" },
-    region: "Mediterranean",
-  },
-  {
-    id: "it",
-    iso: "it",
-    labels: ["Italy"],
-    hemLabel: "Italy",
-    ratio: { height: 2, length: 3 },
-    asset: { svg: "/flags/it.svg" },
-    region: "Mediterranean",
-  },
-  {
-    id: "hr",
-    iso: "hr",
-    labels: ["Croatia"],
-    hemLabel: "Croatia",
-    ratio: { height: 1, length: 2 },
-    asset: { svg: "/flags/hr.svg" },
-    region: "Mediterranean",
-  },
-  {
-    id: "gr",
-    iso: "gr",
-    labels: ["Greece"],
-    hemLabel: "Greece",
-    ratio: { height: 2, length: 3 },
-    asset: { svg: "/flags/gr.svg" },
-    region: "Mediterranean",
-  },
-];
+export const flags: readonly Flag[] = flagEntries.map((entry) => {
+  const [height, length] = entry.ratio ?? [2, 3];
+  return {
+    id: entry.id,
+    iso: entry.id,
+    labels: [entry.name, ...(entry.labels ?? [])],
+    hemLabel: entry.name,
+    ratio: { height, length },
+    asset: { svg: `/flags/${entry.id}.svg` },
+    region: entry.region,
+    kind: entry.kind ?? "national",
+  };
+});
 
-const flagsById = new Map(flags.map((flag) => [flag.id, flag]));
+const byId = new Map(flags.map((flag) => [flag.id, flag]));
 
 export function flagById(id: string): Flag | undefined {
-  return flagsById.get(id);
+  return byId.get(id);
 }

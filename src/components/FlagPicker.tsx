@@ -1,15 +1,18 @@
+import { flagKindLabel } from "../lib/catalog";
 import { flagImageStyle } from "../lib/flagSize";
-import type { Flag, Region } from "../types/flag";
-import { regions } from "../types/flag";
+import type { Flag, FlagKind, Region } from "../types/flag";
+import { flagKinds, regions } from "../types/flag";
 
 type FlagPickerProps = {
   flags: readonly Flag[];
   selectedIds: readonly string[];
   query: string;
   region: Region | "all";
+  kind: FlagKind | "all";
   sheetFull: boolean;
   onQuery: (value: string) => void;
   onRegion: (region: Region | "all") => void;
+  onKind: (kind: FlagKind | "all") => void;
   onToggle: (id: string) => void;
 };
 
@@ -18,9 +21,11 @@ export function FlagPicker({
   selectedIds,
   query,
   region,
+  kind,
   sheetFull,
   onQuery,
   onRegion,
+  onKind,
   onToggle,
 }: FlagPickerProps) {
   const order = new Map(selectedIds.map((id, index) => [id, index + 1]));
@@ -33,11 +38,11 @@ export function FlagPicker({
           <input
             type="search"
             value={query}
-            placeholder="Country or code"
+            placeholder="Country, code, or optional"
             onChange={(event) => onQuery(event.target.value)}
           />
         </label>
-        <div className="regions" role="group" aria-label="Region">
+        <div className="regions" role="group" aria-label="Sailing area">
           <button
             type="button"
             className={region === "all" ? "chip is-on" : "chip"}
@@ -55,6 +60,27 @@ export function FlagPicker({
               onClick={() => onRegion(item)}
             >
               {item}
+            </button>
+          ))}
+        </div>
+        <div className="regions" role="group" aria-label="Flag kind">
+          <button
+            type="button"
+            className={kind === "all" ? "chip is-on" : "chip"}
+            aria-pressed={kind === "all"}
+            onClick={() => onKind("all")}
+          >
+            All kinds
+          </button>
+          {flagKinds.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={kind === item ? "chip is-on" : "chip"}
+              aria-pressed={kind === item}
+              onClick={() => onKind(item)}
+            >
+              {flagKindLabel(item)}
             </button>
           ))}
         </div>
@@ -91,6 +117,13 @@ export function FlagPicker({
                   </span>
                   <span className="flag-name" title={flag.hemLabel}>
                     {flag.hemLabel}
+                  </span>
+                  <span
+                    className={
+                      flag.kind === "regional" ? "flag-kind is-regional" : "flag-kind"
+                    }
+                  >
+                    {flagKindLabel(flag.kind)}
                   </span>
                   <span className="flag-meta">
                     {flag.iso.toUpperCase()} · {flag.ratio.height}:

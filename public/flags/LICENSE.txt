@@ -19,3 +19,18 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Local flags that are not part of flag-icons are from Wikimedia Commons.
+Each of these files keeps the license named here.
+
+- bq.svg — Flag of Bonaire. Public domain.
+- bq-sa.svg — Flag of Saba. CC BY-SA 3.0.
+- bq-se.svg — Flag of Sint Eustatius. CC BY-SA 4.0. Drawn by User:Andrwsc.
+- bl.svg — Flag of Saint Barthélemy (local). CC BY 2.5. The arms are by User:Manassas.
+- gf.svg — Flag of French Guiana. Public domain. Drawn by Madden.
+- gp.svg — Unofficial flag of Guadeloupe (local). Public domain. Drawing by Pierre Gay.
+- mf.svg — Local flag of the Collectivity of Saint Martin. Licence Ouverte. Government of the Collectivity of Saint-Martin, vectorised by Flagvisioner.
+- pm.svg — Flag of Saint-Pierre and Miquelon. Public domain.
+- re.svg — Proposed flag of Réunion (VAR). Public domain.
+- wf.svg — Flag of Wallis and Futuna. Public domain.
+- yt.svg — Flag of Mayotte (local). Public domain.

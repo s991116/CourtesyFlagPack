@@ -165,18 +165,23 @@ function sampleLabel(
   return { r: source[index], g: source[index + 1], b: source[index + 2] };
 }
 
+/**
+ * The artwork files are 4×3. The hem must stretch them to the finished flag,
+ * or the empty sides of that box are rasterized as black bars along the folds.
+ */
+export function svgForHemRaster(svgText: string, width: number, height: number): string {
+  return svgText.replace(/<svg\b([^>]*)>/, (_match, attrs: string) => {
+    const cleaned = attrs.replace(/\s(?:width|height|preserveAspectRatio)="[^"]*"/g, "");
+    return `<svg${cleaned} width="${width}" height="${height}" preserveAspectRatio="none">`;
+  });
+}
+
 async function renderFlag(
   svgText: string,
   width: number,
   height: number,
 ): Promise<ImageData> {
-  const sized = svgText.replace(
-    /<svg\b([^>]*)>/,
-    (_match, attrs: string) => {
-      const cleaned = attrs.replace(/\s(?:width|height)="[^"]*"/g, "");
-      return `<svg${cleaned} width="${width}" height="${height}">`;
-    },
-  );
+  const sized = svgForHemRaster(svgText, width, height);
   const url = URL.createObjectURL(
     new Blob([sized], { type: "image/svg+xml;charset=utf-8" }),
   );
@@ -189,7 +194,10 @@ async function renderFlag(
     canvas.height = height;
     const context = canvas.getContext("2d", { willReadFrequently: true });
     if (!context) throw new Error("Could not read the flag");
-    context.drawImage(image, 0, 0, width, height);
+    // A 1px overscan drops the antialiased edge, which would otherwise
+    // mirror as a dark line along the fold.
+    const bleed = 1;
+    context.drawImage(image, -bleed, -bleed, width + bleed * 2, height + bleed * 2);
     return context.getImageData(0, 0, width, height);
   } finally {
     URL.revokeObjectURL(url);
