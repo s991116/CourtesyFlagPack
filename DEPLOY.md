@@ -1,4 +1,4 @@
-# Deploy Courtesy Flag Pack to courtesyflagpack.sailboatadventure.com
+# Deploy Courtesy Flag Pack to flag.sailboatadventure.com
 
 The live site is a static Vite build on Cloudflare Pages. `sailboatadventure.com` uses one.com nameservers (`ns01.one.com` / `ns02.one.com`). The site itself is not hosted at one.com.
 
@@ -15,28 +15,26 @@ The Git project is **courtesyflagpack**, connected to **s991116/CourtesyFlagPack
 
 Pages installs dependencies, runs the build, and publishes `dist`. There is no Wrangler deploy command in this setup. `public/_redirects` sends unknown paths to `index.html`.
 
-After a green deploy, open the `https://courtesyflagpack.pages.dev` address and confirm the app loads.
+After a green deploy, open the `https://courtesyflagpack.pages.dev` address and confirm the app loads. The Pages project name stays `courtesyflagpack`. The public address is the custom domain below.
 
 ## Custom domain
 
+The public address is `flag.sailboatadventure.com`. `Flag.sailboatadventure.com` is the same address. DNS ignores letter case.
+
 1. In the Pages project, open **Custom domains** → **Set up a custom domain**.
-2. Enter `courtesyflagpack.sailboatadventure.com`.
-3. Cloudflare shows a CNAME because `sailboatadventure.com` is not a zone in this account. In **one.com** DNS:
-   - Remove any `courtesyflagpack` **A-record** that points at one.com web hosting.
-   - Add the CNAME Cloudflare shows. If it does not specify another target:
+2. Enter `flag.sailboatadventure.com`.
+3. In **one.com** DNS for `sailboatadventure.com`, the host `flag` is a CNAME. Remove any `flag` **A-record** that points at one.com web hosting. The record is:
 
    | Type | Host | Target |
    |------|------|--------|
-   | CNAME | courtesyflagpack | courtesyflagpack.pages.dev |
+   | CNAME | flag | courtesyflagpack.pages.dev |
 
-4. Wait 5–15 minutes for SSL, then open https://courtesyflagpack.sailboatadventure.com
-
-`CourtesyFlagPack.sailboatadventure.com` is the same address. DNS ignores letter case.
+4. Wait until the custom domain is **Active**, then open https://flag.sailboatadventure.com
 
 ### Verify DNS
 
 ```bash
-dig courtesyflagpack.sailboatadventure.com CNAME +short
+dig flag.sailboatadventure.com CNAME +short
 # should show: courtesyflagpack.pages.dev.
 ```
 
@@ -62,6 +60,6 @@ The Git connection already deploys every push to `main`. You do not need the com
 ## Troubleshooting
 
 - **Blank page**: the output directory is `dist`. There is no custom `base` in `vite.config.ts`.
-- **one.com default page**: the host must be a **CNAME** to `courtesyflagpack.pages.dev`, not an A-record to one.com.
+- **one.com default page**: the host `flag` must be a **CNAME** to `courtesyflagpack.pages.dev`, not an A-record to one.com.
 - **SSL pending**: wait, then confirm the custom domain is **Active** on the Pages project.
 - **Build fails on Cloudflare**: open the build log, keep Node 22, and run `npm run build` locally.

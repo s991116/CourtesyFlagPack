@@ -21,7 +21,7 @@ npm test
 
 ## Production
 
-The live site is [courtesyflagpack.sailboatadventure.com](https://courtesyflagpack.sailboatadventure.com). Cloudflare Pages builds `main`. The steps for the first setup are in [DEPLOY.md](DEPLOY.md).
+The live site is [flag.sailboatadventure.com](https://flag.sailboatadventure.com). Cloudflare Pages builds `main`. The steps for the first setup are in [DEPLOY.md](DEPLOY.md).
 
 ## Metadata
 
