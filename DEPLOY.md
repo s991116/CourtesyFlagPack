@@ -17,11 +17,12 @@ Cloudflare no longer shows **Workers & Pages** in every account. The screen name
    | Name | `courtesyflagpack` |
    | Build command | `npm run build` |
    | Deploy command | `npx wrangler deploy` |
+   | Preview command | `npx wrangler preview` |
    | Root directory | `/` |
 
-   If there is only a deploy command, replace it with `npm run build && npx wrangler deploy`. The site is built into `dist/` before Wrangler uploads it.
+   If there is only a deploy command, replace it with `npm run build && npx wrangler deploy`. The site is built into `dist/` before Wrangler uploads it. The preview command runs for branches other than `main` and does not replace the live site.
 
-4. Leave the non-production command as `npx wrangler versions upload` if that field is shown.
+4. Save. The first deploy uses `main`.
 5. Save and wait for the first deploy. Open the `pages.dev` or `workers.dev` address Cloudflare shows, and confirm the app loads.
 6. Add the custom domain `courtesyflagpack.sailboatadventure.com` on that project.
 7. In **one.com** DNS for `sailboatadventure.com`:
