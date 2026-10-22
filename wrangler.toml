@@ -1,8 +1,3 @@
 name = "courtesyflagpack"
 compatibility_date = "2026-10-22"
-
-# Static site. `npx wrangler deploy` uploads dist/ and serves index.html
-# for any path that is not a file.
-[assets]
-directory = "./dist"
-not_found_handling = "single-page-application"
+pages_build_output_dir = "dist"
