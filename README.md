@@ -19,6 +19,10 @@ npm run dev
 npm test
 ```
 
+## Production
+
+The live site is [courtesyflagpack.sailboatadventure.com](https://courtesyflagpack.sailboatadventure.com). Cloudflare Pages builds `main`. The steps for the first setup are in [DEPLOY.md](DEPLOY.md).
+
 ## Metadata
 
 The catalog lives in `src/data/flagEntries.ts` and follows the `Flag` type in `src/types/flag.ts`.

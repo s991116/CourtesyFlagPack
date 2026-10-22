@@ -11,10 +11,6 @@ import {
 import { createSheetDocument } from "./sheetPdf";
 import { buildSheetGeometry } from "./sheetGeometry";
 
-function textBlock(output: string, name: string): string {
-  return output.split("BT").find((part) => part.includes(`(${name})`)) ?? "";
-}
-
 function textAnchor(
   output: string,
   name: string,

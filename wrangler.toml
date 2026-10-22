@@ -1,0 +1,6 @@
+name = "courtesyflagpack"
+compatibility_date = "2024-06-01"
+pages_build_output_dir = "dist"
+
+[vars]
+# Production deploy uses Cloudflare Pages (see DEPLOY.md).
