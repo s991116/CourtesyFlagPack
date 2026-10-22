@@ -69,3 +69,4 @@ Dashboard Git integration already deploys every push to `main`. You do not need 
 - **one.com default page**: the host must be a **CNAME** to `courtesyflagpack.pages.dev`, not an A-record to one.com.
 - **SSL pending**: wait, then confirm the custom domain is **Active** on the Pages project.
 - **Build fails on Cloudflare**: open the build log, keep Node 22, and run `npm run build` locally.
+- **Invalid `_redirects` / infinite loop**: do not add a `/* /index.html 200` rule. `wrangler.toml` already serves `index.html` for unknown paths.
