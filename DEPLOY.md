@@ -4,36 +4,37 @@ Same hosting model as [harbour.sailboatadventure.dk](https://harbour.sailboatadv
 
 `sailboatadventure.com` uses one.com nameservers (`ns01.one.com` / `ns02.one.com`). The site itself is not hosted at one.com.
 
-## Recommended — Cloudflare Dashboard
+## Recommended — the Create page you see now
 
-1. Log in at [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
-2. Select **s991116/CourtesyFlagPack**, production branch **main**.
-3. Build settings:
+Cloudflare no longer shows **Workers & Pages** in every account. The screen named **Create** → **Connect to GitHub** is the right one. It has no branch picker because it uses the repository’s default branch, which is `main`.
+
+1. Log in at [Cloudflare Dashboard](https://dash.cloudflare.com/) and open **Create** → **Connect to GitHub**.
+2. Choose **s991116/CourtesyFlagPack**.
+3. Set the fields like this:
 
    | Field | Value |
    |-------|--------|
-   | Framework preset | Vite (or None) |
+   | Name | `courtesyflagpack` |
    | Build command | `npm run build` |
-   | Build output directory | `dist` |
+   | Deploy command | `npx wrangler deploy` |
    | Root directory | `/` |
-   | Node.js version | **22** (the repo `.nvmrc`) |
 
-4. Project name: **courtesyflagpack**. The first URL is `https://courtesyflagpack.pages.dev`.
-5. Wait until that build succeeds and the pages.dev site loads.
-6. **Custom domains** → **Set up a custom domain** → `courtesyflagpack.sailboatadventure.com`.
+   If there is only a deploy command, replace it with `npm run build && npx wrangler deploy`. The site is built into `dist/` before Wrangler uploads it.
+
+4. Leave the non-production command as `npx wrangler versions upload` if that field is shown.
+5. Save and wait for the first deploy. Open the `pages.dev` or `workers.dev` address Cloudflare shows, and confirm the app loads.
+6. Add the custom domain `courtesyflagpack.sailboatadventure.com` on that project.
 7. In **one.com** DNS for `sailboatadventure.com`:
    - Remove any `courtesyflagpack` **A-record** that points at one.com web hosting.
-   - Add:
+   - Add the CNAME Cloudflare shows. If it does not specify another target:
 
    | Type | Host | Target |
    |------|------|--------|
    | CNAME | courtesyflagpack | courtesyflagpack.pages.dev |
 
-   Use the target Cloudflare shows, if it differs.
-
 8. Wait 5–15 minutes for SSL, then open https://courtesyflagpack.sailboatadventure.com
 
-`CourtesyFlagPack.sailboatadventure.com` is the same address. DNS does not care about letter case.
+`CourtesyFlagPack.sailboatadventure.com` is the same address. DNS ignores letter case.
 
 ### Verify DNS
 
