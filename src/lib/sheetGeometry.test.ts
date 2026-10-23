@@ -184,6 +184,26 @@ describe("sheet geometry", () => {
     expect(placed.label.y).toBeCloseTo(placed.artwork.y + placed.artwork.height / 2);
   });
 
+  it("opens the next row only after the row above is full", () => {
+    const flags = ["a", "b", "c", "d", "e"].map((id) => flag(id, 2, 3));
+    const columns = 4;
+    const rows = Math.ceil(flags.length / columns);
+    const sheet = buildSheetGeometry(flags, columns, rows, layout);
+    const [first, , , fourth, fifth] = sheet.flags;
+
+    expect(rows).toBe(2);
+    expect(sheet.flags).toHaveLength(5);
+    expect(fourth.cut.y).toBeCloseTo(first.cut.y);
+    expect(fifth.cut.y).toBeGreaterThan(first.cut.y);
+    expect(fifth.cut.x).toBeCloseTo(first.cut.x);
+    expect(sheet.pageHeightMm).toBeCloseTo(
+      layout.outerMarginMm * 2 +
+        first.cut.height +
+        fifth.cut.height +
+        layout.gutterMm,
+    );
+  });
+
   it("reads left to right and does not reserve empty columns", () => {
     const sheet = buildSheetGeometry(
       [flag("a", 1, 2), flag("b", 1, 2), flag("c", 1, 2)],

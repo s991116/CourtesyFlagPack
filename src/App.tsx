@@ -1,21 +1,11 @@
 import { useMemo, useState } from "react";
 import { FlagPicker } from "./components/FlagPicker";
-import { SheetDownload, SheetPanel, SheetSetup } from "./components/SheetPanel";
+import { SheetDownload, SheetPanel } from "./components/SheetPanel";
 import { flagById, flags } from "./data/flags";
-import {
-  defaultFlagSize,
-  defaultSheetFormat,
-  sheetFormats,
-} from "./data/sheet";
+import { defaultFlagsPerRow, flagsPerRowOptions } from "./data/sheet";
 import { filterFlags } from "./lib/catalog";
 import type { FlagProportion } from "./lib/flagSize";
-import { sheetCapacity } from "./lib/layout";
-import {
-  isSheetFull,
-  removeSelection,
-  toggleSelection,
-  trimSelection,
-} from "./lib/selection";
+import { removeSelection, toggleSelection } from "./lib/selection";
 import type { FlagKind, Region } from "./types/flag";
 
 export function App() {
@@ -23,30 +13,23 @@ export function App() {
   const [region, setRegion] = useState<Region | "all">("all");
   const [kind, setKind] = useState<FlagKind | "all">("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [formatId, setFormatId] = useState(defaultSheetFormat.id);
+  const [columns, setColumns] = useState(defaultFlagsPerRow);
   const [proportion, setProportion] = useState<FlagProportion>("original");
-
-  const format =
-    sheetFormats.find((item) => item.id === formatId) ?? defaultSheetFormat;
-  const capacity = sheetCapacity(format.columns, format.rows);
-  const sheetFull = isSheetFull(selectedIds.length, capacity);
 
   const visibleFlags = useMemo(
     () => filterFlags(flags, query, region, kind),
     [query, region, kind],
   );
+  const sheetRows = Math.max(1, Math.ceil(selectedIds.length / columns));
 
   function toggle(id: string) {
     setSelectedIds((current) =>
-      toggleSelection(current, id, format.columns, format.rows),
-    );
-  }
-
-  function chooseFormat(id: string) {
-    const next = sheetFormats.find((item) => item.id === id) ?? format;
-    setFormatId(next.id);
-    setSelectedIds((current) =>
-      trimSelection(current, next.columns, next.rows),
+      toggleSelection(
+        current,
+        id,
+        columns,
+        Math.ceil((current.length + 1) / columns),
+      ),
     );
   }
 
@@ -71,21 +54,16 @@ export function App() {
           query={query}
           region={region}
           kind={kind}
-          sheetFull={sheetFull}
           onQuery={setQuery}
           onRegion={setRegion}
           onKind={setKind}
           onToggle={toggle}
         />
-        <SheetSetup
-          format={format}
-          formats={sheetFormats}
-          size={defaultFlagSize}
-          onFormat={chooseFormat}
-        />
         <SheetPanel
           selectedIds={selectedIds.filter((id) => flagById(id))}
-          format={format}
+          columns={columns}
+          perRowOptions={flagsPerRowOptions}
+          onColumns={setColumns}
           proportion={proportion}
           onProportion={setProportion}
           onRemove={remove}
@@ -95,8 +73,8 @@ export function App() {
 
       <SheetDownload
         selectedIds={selectedIds.filter((id) => flagById(id))}
-        columns={format.columns}
-        rows={format.rows}
+        columns={columns}
+        rows={sheetRows}
         proportion={proportion}
       />
     </div>

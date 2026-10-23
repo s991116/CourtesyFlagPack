@@ -10,7 +10,6 @@ type FlagPickerProps = {
   query: string;
   region: Region | "all";
   kind: FlagKind | "all";
-  sheetFull: boolean;
   onQuery: (value: string) => void;
   onRegion: (region: Region | "all") => void;
   onKind: (kind: FlagKind | "all") => void;
@@ -23,7 +22,6 @@ export function FlagPicker({
   query,
   region,
   kind,
-  sheetFull,
   onQuery,
   onRegion,
   onKind,
@@ -94,14 +92,12 @@ export function FlagPicker({
           {flags.map((flag) => {
             const selected = order.has(flag.id);
             const position = order.get(flag.id);
-            const locked = sheetFull && !selected;
             return (
               <li key={flag.id}>
                 <button
                   type="button"
                   className={selected ? "flag-card is-selected" : "flag-card"}
                   aria-pressed={selected}
-                  disabled={locked}
                   onClick={() => onToggle(flag.id)}
                 >
                   <span className="flag-art" style={catalogStageStyle()}>

@@ -1,20 +1,13 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { flagById } from "../data/flags";
 import { slotFlagStyle, type FlagProportion } from "../lib/flagSize";
 import { FlagArtwork } from "./FlagArtwork";
-import { paginateFlags } from "../lib/layout";
-import type { FlagSize, SheetFormat } from "../types/flag";
-
-type SheetSetupProps = {
-  format: SheetFormat;
-  formats: readonly SheetFormat[];
-  size: FlagSize;
-  onFormat: (id: string) => void;
-};
 
 type SheetPanelProps = {
   selectedIds: readonly string[];
-  format: SheetFormat;
+  columns: number;
+  perRowOptions: readonly number[];
+  onColumns: (columns: number) => void;
   proportion: FlagProportion;
   onProportion: (proportion: FlagProportion) => void;
   onRemove: (id: string) => void;
@@ -28,161 +21,98 @@ type SheetDownloadProps = {
   proportion: FlagProportion;
 };
 
-export function SheetSetup({ format, formats, size, onFormat }: SheetSetupProps) {
-  return (
-    <div className="sheet-setup">
-      <dl className="sheet-facts">
-        <dt>Flag size</dt>
-        <dt>Slots</dt>
-        <dd>{size.label}</dd>
-        <dd>
-          <div className="format-picker" role="group" aria-label="Format">
-            {formats.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={item.id === format.id ? "format is-on" : "format"}
-                aria-pressed={item.id === format.id}
-                onClick={() => onFormat(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </dd>
-      </dl>
-    </div>
-  );
-}
-
 export function SheetPanel({
   selectedIds,
-  format,
+  columns,
+  perRowOptions,
+  onColumns,
   proportion,
   onProportion,
   onRemove,
   onClear,
 }: SheetPanelProps) {
-  const pages = paginateFlags(selectedIds, format.columns, format.rows);
-  const [pageIndex, setPageIndex] = useState(0);
-  const safePage = Math.min(pageIndex, Math.max(pages.length - 1, 0));
-  const page = pages[safePage] ?? [];
-  const slots = format.columns * format.rows;
-
-  useEffect(() => {
-    setPageIndex(0);
-  }, [format.id]);
-  const countLabel =
-    selectedIds.length === 0
-      ? "No flags selected"
-      : selectedIds.length === 1
-        ? "1 flag selected"
-        : `${selectedIds.length} flags selected`;
+  const flags = selectedIds.flatMap((id) => {
+    const flag = flagById(id);
+    return flag ? [flag] : [];
+  });
 
   return (
     <aside className="sheet" aria-label="Selected sheet">
       <header className="sheet-head">
-        <h2>Sheet</h2>
-        <div className="sheet-count-row">
-          <p>{countLabel}</p>
-          <fieldset className="proportion">
-            <legend>Flag shape</legend>
-            <label>
-              <input
-                type="radio"
-                name="flag-proportion"
-                checked={proportion === "original"}
-                onChange={() => onProportion("original")}
-              />
-              Original ratio
+        <div className="sheet-title-row">
+          <h2>Sheet selected</h2>
+          <div className="sheet-controls">
+            <label className="sheet-select">
+              Flags per row
+              <select
+                value={columns}
+                onChange={(event) => onColumns(Number(event.target.value))}
+              >
+                {perRowOptions.map((count) => (
+                  <option key={count} value={count}>
+                    {count}
+                  </option>
+                ))}
+              </select>
             </label>
-            <label>
-              <input
-                type="radio"
-                name="flag-proportion"
-                checked={proportion === "fixed"}
-                onChange={() => onProportion("fixed")}
-              />
-              30 × 40 cm
+            <label className="sheet-select">
+              <select
+                aria-label="Flag shape"
+                value={proportion}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (value === "original" || value === "fixed") {
+                    onProportion(value);
+                  }
+                }}
+              >
+                <option value="original">Original ratio</option>
+                <option value="fixed">40 × 30 cm</option>
+              </select>
             </label>
-          </fieldset>
+          </div>
         </div>
       </header>
 
-      {selectedIds.length === 0 ? (
+      {flags.length === 0 ? (
         <p className="sheet-empty">
           Click flags in the order they should appear on the sheet.
         </p>
       ) : (
         <>
-          <div className="preview-bar">
-            <span>
-              Page {safePage + 1} of {pages.length}
-            </span>
-            {pages.length > 1 ? (
-              <span className="preview-nav">
-                <button
-                  type="button"
-                  onClick={() => setPageIndex(Math.max(safePage - 1, 0))}
-                  disabled={safePage === 0}
-                >
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setPageIndex(Math.min(safePage + 1, pages.length - 1))
-                  }
-                  disabled={safePage === pages.length - 1}
-                >
-                  Next
-                </button>
-              </span>
-            ) : null}
-          </div>
           <ol
             className="preview"
-            style={{ gridTemplateColumns: `repeat(${format.columns}, 1fr)` }}
+            style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}
           >
-            {Array.from({ length: slots }, (_, index) => {
-              const id = page[index];
-              const flag = id ? flagById(id) : undefined;
-              return (
-                <li key={index} className={flag ? "slot" : "slot is-empty"}>
-                  <span className="slot-name" title={flag?.hemLabel}>
-                    {flag?.hemLabel}
+            {flags.map((flag) => (
+              <li key={flag.id} className="slot">
+                <span className="slot-flag" style={slotFlagStyle()}>
+                  <FlagArtwork flag={flag} proportion={proportion} />
+                </span>
+                <span className="slot-foot">
+                  <span className="slot-name" title={flag.hemLabel}>
+                    {flag.hemLabel}
                   </span>
-                  <span className="slot-flag" style={slotFlagStyle()}>
-                    {flag ? (
-                      <FlagArtwork flag={flag} proportion={proportion} />
-                    ) : (
-                      <span className="slot-empty">Empty</span>
-                    )}
-                  </span>
-                  {flag ? (
-                    <button
-                      type="button"
-                      className="slot-remove"
-                      aria-label={`Remove ${flag.hemLabel}`}
-                      onClick={() => onRemove(flag.id)}
-                    >
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.75"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M4 7h16M9.5 7V4.5h5V7M7.5 7l.8 12.5h7.4L16.5 7M10 11v5M14 11v5"
-                        />
-                      </svg>
-                    </button>
-                  ) : (
-                    <span className="slot-remove-spacer" aria-hidden="true" />
-                  )}
-                </li>
-              );
-            })}
+                  <button
+                    type="button"
+                    className="slot-remove"
+                    aria-label={`Remove ${flag.hemLabel}`}
+                    onClick={() => onRemove(flag.id)}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.75"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4 7h16M9.5 7V4.5h5V7M7.5 7l.8 12.5h7.4L16.5 7M10 11v5M14 11v5"
+                      />
+                    </svg>
+                  </button>
+                </span>
+              </li>
+            ))}
           </ol>
           <button type="button" className="clear" onClick={onClear}>
             Clear selection

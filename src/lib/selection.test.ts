@@ -12,6 +12,19 @@ describe("sheet selection", () => {
     expect(toggleSelection(["dk", "se"], "dk", 2, 2)).toEqual(["se"]);
   });
 
+  it("accepts the next flag when another row is opened", () => {
+    const selected = ["dk", "se", "no", "fi"];
+    const columns = 4;
+    const rows = Math.ceil((selected.length + 1) / columns);
+    expect(toggleSelection(selected, "is", columns, rows)).toEqual([
+      "dk",
+      "se",
+      "no",
+      "fi",
+      "is",
+    ]);
+  });
+
   it("refuses another flag when every slot is taken", () => {
     const full = ["dk", "se", "no", "fi"];
     expect(toggleSelection(full, "is", 2, 2)).toEqual(full);

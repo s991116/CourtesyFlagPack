@@ -2,7 +2,7 @@
 
 Choose courtesy flags and download a print-size PDF.
 
-Search and select flags, pick a format (2×2, 3×4, or 4×5), and download the sheet. Each flag keeps its official ratio, at most 40 cm long and 30 cm high. The sheet can instead print every flag at 30 × 40 cm.
+Search and select flags, then choose how many flags sit in each row, from 2 to 6. Each flag keeps its official ratio, at most 40 cm long and 30 cm high. The sheet can instead print every flag at 40 × 30 cm.
 
 The catalog covers Europe, the Caribbean, North America, South America, Oceania, the Indian Ocean, Asia, and Africa. A national flag is the courtesy flag for that place. A regional flag is optional, and is flown as well as the national flag. Search and the kind filter both show which is which. French and Dutch islands that have their own flag are regional: France and the Netherlands stay selectable as the national flag, and the island flag can be added beside it.
 
@@ -37,7 +37,7 @@ Each flag has:
 - `region` — sailing area used by the picker filter
 - `kind` — `national`, or `regional` when the flag is optional
 
-Sheet format and cloth size live in `src/data/sheet.ts`. `src/lib/layout.ts` splits the selection into pages.
+How many flags sit in a row, from 2 to 6, and the largest cloth live in `src/data/sheet.ts`. The sheet adds a row when the row above is full.
 
 ## Flag files
 

@@ -49,17 +49,3 @@ export type Region = (typeof regions)[number];
 export const flagKinds = ["national", "regional"] as const;
 
 export type FlagKind = (typeof flagKinds)[number];
-
-export type FlagSize = {
-  id: string;
-  lengthCm: number;
-  heightCm: number;
-  label: string;
-};
-
-export type SheetFormat = {
-  id: string;
-  columns: number;
-  rows: number;
-  label: string;
-};
