@@ -308,8 +308,10 @@ h1 {
   align-items: start;
   gap: 14px 8px;
   margin: 12px 0 0;
-  padding: 0;
+  padding: 12px;
   list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 10px;
 }
 
 .slot {

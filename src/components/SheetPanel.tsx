@@ -40,7 +40,7 @@ export function SheetPanel({
     <aside className="sheet" aria-label="Selected sheet">
       <header className="sheet-head">
         <div className="sheet-title-row">
-          <h2>Sheet selected</h2>
+          <h2>Flags selected</h2>
           <div className="sheet-controls">
             <label className="sheet-select">
               Flags per row
