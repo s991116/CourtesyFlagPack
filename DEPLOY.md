@@ -57,6 +57,24 @@ npm run deploy:pages
 
 The Git connection already deploys every push to `main`. You do not need the command if that connection is in place.
 
+## Visits and PDF downloads
+
+Visits and successful PDF downloads are counted with [GoatCounter](https://www.goatcounter.com/). Cloudflare’s own visit counter cannot count the **Download PDF** button, so both numbers are collected there. The counter sets no cookies and does not send which flags are selected.
+
+It is already wired in. A visit is counted when the page opens. `download-pdf` is counted when the PDF file has been created. Nothing is sent until a site code is set, and localhost is not counted.
+
+1. Create a free site at [goatcounter.com](https://www.goatcounter.com/). The code is the part in front of `.goatcounter.com`, for example `courtesyflagpack`.
+2. In the settings there, allow `flag.sailboatadventure.com`.
+3. In the Cloudflare Pages project **courtesyflagpack**, open **Settings** → **Environment variables**. Add this for **Production**:
+
+   | Name | Value |
+   |------|--------|
+   | `VITE_GOATCOUNTER_CODE` | the site code, for example `courtesyflagpack` |
+
+Vite reads the variable at build time, so Cloudflare must build the site again after it is saved.
+
+The numbers are at `https://<site-code>.goatcounter.com`. Page views are the visits. The download is the event `download-pdf`.
+
 ## Troubleshooting
 
 - **Blank page**: the output directory is `dist`. There is no custom `base` in `vite.config.ts`.

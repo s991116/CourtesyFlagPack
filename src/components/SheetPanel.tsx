@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { flagById } from "../data/flags";
+import { trackDownloadPdf } from "../lib/analytics";
 import { slotFlagStyle, type FlagProportion } from "../lib/flagSize";
 import { FlagArtwork } from "./FlagArtwork";
 
@@ -142,6 +143,7 @@ export function SheetDownload({
     try {
       const { downloadSheetPdf } = await import("../lib/sheetPdf");
       await downloadSheetPdf(selected, columns, rows, proportion);
+      trackDownloadPdf();
     } catch {
       setDownloadError("The PDF could not be created.");
     } finally {
