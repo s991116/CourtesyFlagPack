@@ -63,17 +63,13 @@ Visits and successful PDF downloads are counted with [GoatCounter](https://www.g
 
 It is already wired in. A visit is counted when the page opens. `download-pdf` is counted when the PDF file has been created. Nothing is sent until a site code is set, and localhost is not counted.
 
-1. Create a free site at [goatcounter.com](https://www.goatcounter.com/). The code is the part in front of `.goatcounter.com`, for example `courtesyflagpack`.
+The production site code is `sailboatadventure`, in `.env.production`. Vite reads that file when it builds. A plain text variable in the Cloudflare Pages dashboard is not passed into this build, so `VITE_GOATCOUNTER_CODE` set there does not change the published JavaScript.
+
+1. Create a free site at [goatcounter.com](https://www.goatcounter.com/). The code is the part in front of `.goatcounter.com`.
 2. In the settings there, allow `flag.sailboatadventure.dk`.
-3. In the Cloudflare Pages project **courtesyflagpack**, open **Settings** → **Environment variables**. Add this for **Production**:
+3. Put that code in `.env.production` as `VITE_GOATCOUNTER_CODE`, and push. Cloudflare builds `main` again from that file.
 
-   | Name | Value |
-   |------|--------|
-   | `VITE_GOATCOUNTER_CODE` | the site code, for example `courtesyflagpack` |
-
-Vite reads the variable at build time, so Cloudflare must build the site again after it is saved.
-
-The numbers are at `https://<site-code>.goatcounter.com`. Page views are the visits. The download is the event `download-pdf`.
+The numbers are at https://sailboatadventure.goatcounter.com. Page views are the visits. The download is the event `download-pdf`.
 
 ## Troubleshooting
 
