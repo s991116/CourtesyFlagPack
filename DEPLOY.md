@@ -1,6 +1,6 @@
-# Deploy Courtesy Flag Pack to flag.sailboatadventure.com
+# Deploy Courtesy Flag Pack to flag.sailboatadventure.dk
 
-The live site is a static Vite build on Cloudflare Pages. `sailboatadventure.com` uses one.com nameservers (`ns01.one.com` / `ns02.one.com`). The site itself is not hosted at one.com.
+The live site is a static Vite build on Cloudflare Pages. `sailboatadventure.dk` uses Cloudflare nameservers (`micah.ns.cloudflare.com` / `stella.ns.cloudflare.com`).
 
 ## Cloudflare Pages
 
@@ -19,22 +19,22 @@ After a green deploy, open the `https://courtesyflagpack.pages.dev` address and 
 
 ## Custom domain
 
-The public address is `flag.sailboatadventure.com`. `Flag.sailboatadventure.com` is the same address. DNS ignores letter case.
+The public address is `flag.sailboatadventure.dk`. `Flag.sailboatadventure.dk` is the same address. DNS ignores letter case.
 
 1. In the Pages project, open **Custom domains** → **Set up a custom domain**.
-2. Enter `flag.sailboatadventure.com`.
-3. In **one.com** DNS for `sailboatadventure.com`, the host `flag` is a CNAME. Remove any `flag` **A-record** that points at one.com web hosting. The record is:
+2. Enter `flag.sailboatadventure.dk`.
+3. In the Cloudflare DNS zone for `sailboatadventure.dk`, the host `flag` is a CNAME. Remove any `flag` **A-record**. The record is:
 
    | Type | Host | Target |
    |------|------|--------|
    | CNAME | flag | courtesyflagpack.pages.dev |
 
-4. Wait until the custom domain is **Active**, then open https://flag.sailboatadventure.com
+4. Wait until the custom domain is **Active**, then open https://flag.sailboatadventure.dk
 
 ### Verify DNS
 
 ```bash
-dig flag.sailboatadventure.com CNAME +short
+dig flag.sailboatadventure.dk CNAME +short
 # should show: courtesyflagpack.pages.dev.
 ```
 
@@ -64,7 +64,7 @@ Visits and successful PDF downloads are counted with [GoatCounter](https://www.g
 It is already wired in. A visit is counted when the page opens. `download-pdf` is counted when the PDF file has been created. Nothing is sent until a site code is set, and localhost is not counted.
 
 1. Create a free site at [goatcounter.com](https://www.goatcounter.com/). The code is the part in front of `.goatcounter.com`, for example `courtesyflagpack`.
-2. In the settings there, allow `flag.sailboatadventure.com`.
+2. In the settings there, allow `flag.sailboatadventure.dk`.
 3. In the Cloudflare Pages project **courtesyflagpack**, open **Settings** → **Environment variables**. Add this for **Production**:
 
    | Name | Value |
@@ -78,6 +78,6 @@ The numbers are at `https://<site-code>.goatcounter.com`. Page views are the vis
 ## Troubleshooting
 
 - **Blank page**: the output directory is `dist`. There is no custom `base` in `vite.config.ts`.
-- **one.com default page**: the host `flag` must be a **CNAME** to `courtesyflagpack.pages.dev`, not an A-record to one.com.
+- **Wrong site at the flag address**: the host `flag` must be a **CNAME** to `courtesyflagpack.pages.dev`, not an A-record.
 - **SSL pending**: wait, then confirm the custom domain is **Active** on the Pages project.
 - **Build fails on Cloudflare**: open the build log, keep Node 22, and run `npm run build` locally.
