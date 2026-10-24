@@ -61,6 +61,11 @@ h1 {
   font-size: 1.05rem;
 }
 
+.lede a {
+  color: var(--ink);
+  text-underline-offset: 3px;
+}
+
 .workspace {
   display: grid;
   gap: 22px;

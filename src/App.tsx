@@ -44,7 +44,15 @@ export function App() {
         <h1>Courtesy flags for print</h1>
         <p className="lede">
           Choose the countries for the sheet and download a PDF ready to be
-          printed.
+          printed.{" "}
+          <a
+            href="https://sailboatadventure.dk/tips/#:~:text=Print%20your%20own%20courtesy%20flags"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            How to print and sew the flags
+          </a>
+          .
         </p>
       </header>
 
