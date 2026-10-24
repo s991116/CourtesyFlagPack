@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { flags } from "../data/flags";
-import { maxFlagHeightCm, maxFlagLengthCm } from "../data/sheet";
+import { flagClothById, maxFlagHeightCm, maxFlagLengthCm } from "../data/sheet";
 import type { Flag } from "../types/flag";
-import { artworkSize, catalogFlagStyle, fittedFlagSize } from "./flagSize";
+import { catalogFlagStyle, designSize, fittedFlagSize, pieceSize } from "./flagSize";
 
 function flag(height: number, length: number): Flag {
   return {
@@ -18,7 +18,10 @@ function flag(height: number, length: number): Flag {
 }
 
 describe("fitted flag size", () => {
-  it("keeps the official ratio inside 40 cm by 30 cm", () => {
+  const large = flagClothById("45x30");
+  const small = flagClothById("30x20");
+
+  it("keeps the official ratio inside 45 cm by 30 cm", () => {
     for (const item of flags) {
       const size = fittedFlagSize(item);
       expect(size.lengthCm).toBeLessThanOrEqual(maxFlagLengthCm + 1e-9);
@@ -33,8 +36,8 @@ describe("fitted flag size", () => {
   });
 
   it("uses the full length when the flag is wider than the box", () => {
-    expect(fittedFlagSize(flag(1, 2))).toEqual({ lengthCm: 40, heightCm: 20 });
-    expect(fittedFlagSize(flag(5, 8))).toEqual({ lengthCm: 40, heightCm: 25 });
+    expect(fittedFlagSize(flag(1, 2))).toEqual({ lengthCm: 45, heightCm: 22.5 });
+    expect(fittedFlagSize(flag(5, 8))).toEqual({ lengthCm: 45, heightCm: 28.125 });
   });
 
   it("uses the full height when the flag is taller than the box", () => {
@@ -43,19 +46,32 @@ describe("fitted flag size", () => {
     expect(denmark.lengthCm).toBeCloseTo(39.642857);
   });
 
-  it("fills 30 cm by 40 cm when the original ratio is off", () => {
-    expect(artworkSize(flag(1, 2), "fixed")).toEqual({
+  it("fits either cloth as max size, stretched, or original ratio", () => {
+    expect(pieceSize(flag(1, 2), large, "max")).toEqual({
       heightCm: 30,
-      lengthCm: 40,
+      lengthCm: 45,
     });
-    expect(artworkSize(flag(28, 37), "fixed")).toEqual({
+    expect(designSize(flag(1, 2), large, "max")).toEqual({
+      heightCm: 22.5,
+      lengthCm: 45,
+    });
+    expect(designSize(flag(1, 2), large, "stretched")).toEqual({
       heightCm: 30,
-      lengthCm: 40,
+      lengthCm: 45,
     });
-    expect(artworkSize(flag(1, 2), "original")).toEqual({
+    expect(pieceSize(flag(1, 2), large, "original")).toEqual({
+      heightCm: 22.5,
+      lengthCm: 45,
+    });
+    expect(pieceSize(flag(1, 2), small, "stretched")).toEqual({
       heightCm: 20,
-      lengthCm: 40,
+      lengthCm: 30,
     });
+    expect(designSize(flag(28, 37), small, "original")).toEqual(
+      fittedFlagSize(flag(28, 37), small),
+    );
+    expect(fittedFlagSize(flag(28, 37), small).lengthCm).toBeLessThanOrEqual(30);
+    expect(fittedFlagSize(flag(28, 37), small).heightCm).toBeLessThanOrEqual(20);
   });
 
   it("shrinks catalog flags that are taller than Albania", () => {
@@ -66,8 +82,11 @@ describe("fitted flag size", () => {
       throw new Error("missing catalog flag");
     }
     const stage = fittedFlagSize(albania).heightCm;
+    const albaniaSize = fittedFlagSize(albania);
 
-    expect(catalogFlagStyle(albania).width).toBe("100%");
+    expect(parseFloat(catalogFlagStyle(albania).width)).toBeCloseTo(
+      (albaniaSize.lengthCm / maxFlagLengthCm) * 100,
+    );
     expect(parseFloat(catalogFlagStyle(switzerland).width)).toBeCloseTo(
       (30 / maxFlagLengthCm) * (stage / 30) * 100,
     );

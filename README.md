@@ -2,7 +2,7 @@
 
 Choose courtesy flags and download a print-size PDF.
 
-Search and select flags, then choose how many flags sit in each row, from 2 to 6. Each flag keeps its official ratio, at most 40 cm long and 30 cm high. The sheet can instead print every flag at 40 × 30 cm.
+Search and select flags, then choose how many flags sit in each row, from 2 to 6. A flag can be printed at 45 × 30 cm or 30 × 20 cm. Stretched fills the cloth, and Original keeps the official ratio on that cloth. 45 × 30 cm and Stretched are selected by default.
 
 The catalog covers Europe, the Caribbean, North America, South America, Oceania, the Indian Ocean, Asia, and Africa. A national flag is the courtesy flag for that place. A regional flag is optional, and is flown as well as the national flag. Search and the kind filter both show which is which. French and Dutch islands that have their own flag are regional: France and the Netherlands stay selectable as the national flag, and the island flag can be added beside it.
 
@@ -37,7 +37,7 @@ Each flag has:
 - `region` — sailing area used by the picker filter
 - `kind` — `national`, or `regional` when the flag is optional
 
-How many flags sit in a row, from 2 to 6, and the largest cloth live in `src/data/sheet.ts`. The sheet adds a row when the row above is full.
+How many flags sit in a row, from 2 to 6, and the cloth sizes 45 × 30 cm and 30 × 20 cm live in `src/data/sheet.ts`. The sheet adds a row when the row above is full. The full printed page is shown as Print area, and the PDF is saved under that size, for example `courtesy-flags_print-area_50.6x35.6_cm.pdf`.
 
 ## Flag files
 

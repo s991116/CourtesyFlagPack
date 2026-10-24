@@ -1,4 +1,9 @@
-import { maxFlagHeightCm, maxFlagLengthCm } from "../data/sheet";
+import {
+  flagClothById,
+  maxFlagHeightCm,
+  maxFlagLengthCm,
+  type FlagCloth,
+} from "../data/sheet";
 import { flagById } from "../data/flags";
 import type { Flag } from "../types/flag";
 
@@ -7,14 +12,25 @@ export type FittedFlag = {
   heightCm: number;
 };
 
-/** Original ratio, or the full 30 cm by 40 cm cloth. */
-export type FlagProportion = "original" | "fixed";
+/**
+ * Original keeps the ratio and centers it on the chosen cloth.
+ * Stretched fills that cloth.
+ * Original ratio keeps the ratio and trims the cloth to the flag.
+ */
+export type FlagFit = "max" | "stretched" | "original";
 
-/** Scale a flag so it keeps its ratio and stays inside 40 cm by 30 cm. */
-export function fittedFlagSize(flag: Flag): FittedFlag {
+export const defaultFlagFit: FlagFit = "stretched";
+
+const largestCloth = flagClothById("45x30");
+
+/** Scale a flag so it keeps its ratio and stays inside the cloth. */
+export function fittedFlagSize(
+  flag: Flag,
+  cloth: FlagCloth = largestCloth,
+): FittedFlag {
   const scale = Math.min(
-    maxFlagHeightCm / flag.ratio.height,
-    maxFlagLengthCm / flag.ratio.length,
+    cloth.heightCm / flag.ratio.height,
+    cloth.lengthCm / flag.ratio.length,
   );
   return {
     heightCm: flag.ratio.height * scale,
@@ -22,35 +38,53 @@ export function fittedFlagSize(flag: Flag): FittedFlag {
   };
 }
 
-/** Finished cloth size. Fixed flags fill 30 cm by 40 cm. */
-export function artworkSize(
+/** The picture drawn on the cloth. */
+export function designSize(
   flag: Flag,
-  proportion: FlagProportion = "original",
+  cloth: FlagCloth,
+  fit: FlagFit,
 ): FittedFlag {
-  if (proportion === "fixed") {
-    return { heightCm: maxFlagHeightCm, lengthCm: maxFlagLengthCm };
+  if (fit === "stretched") {
+    return { heightCm: cloth.heightCm, lengthCm: cloth.lengthCm };
   }
-  return fittedFlagSize(flag);
+  return fittedFlagSize(flag, cloth);
 }
 
-/** Same height for every sheet slot, so the remove control does not follow the flag. */
-export function slotFlagStyle(): { aspectRatio: string } {
-  return { aspectRatio: `${maxFlagLengthCm} / ${maxFlagHeightCm}` };
+/** The finished cloth. Original ratio is cut to the flag. */
+export function pieceSize(
+  flag: Flag,
+  cloth: FlagCloth,
+  fit: FlagFit,
+): FittedFlag {
+  if (fit === "original") return fittedFlagSize(flag, cloth);
+  return { heightCm: cloth.heightCm, lengthCm: cloth.lengthCm };
 }
 
-/** The flag itself, sized against a 40 cm fly without an outer frame. */
+/** The preview slot. Original ratio is only as large as the flag. */
+export function slotFlagStyle(
+  flag: Flag,
+  cloth: FlagCloth,
+  fit: FlagFit,
+): { aspectRatio: string } {
+  const size = fit === "original" ? designSize(flag, cloth, fit) : pieceSize(flag, cloth, fit);
+  return { aspectRatio: `${size.lengthCm} / ${size.heightCm}` };
+}
+
+/** The flag picture inside its slot. */
 export function flagImageStyle(
   flag: Flag,
-  proportion: FlagProportion = "original",
+  cloth: FlagCloth,
+  fit: FlagFit,
 ): { width: string; aspectRatio: string } {
-  const size = artworkSize(flag, proportion);
+  const design = designSize(flag, cloth, fit);
+  const piece = pieceSize(flag, cloth, fit);
   return {
-    width: `${(size.lengthCm / maxFlagLengthCm) * 100}%`,
-    aspectRatio: `${size.lengthCm} / ${size.heightCm}`,
+    width: `${(design.lengthCm / piece.lengthCm) * 100}%`,
+    aspectRatio: `${design.lengthCm} / ${design.heightCm}`,
   };
 }
 
-/** Albania's fitted height. Every catalog card reserves this much cloth. */
+/** Albania's fitted height inside the largest cloth. */
 export function catalogStageHeightCm(): number {
   const albania = flagById("al");
   return albania ? fittedFlagSize(albania).heightCm : maxFlagHeightCm;

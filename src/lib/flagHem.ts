@@ -29,10 +29,11 @@ export async function renderMirroredHem(
   artwork: MmRect,
   frame: ColorFrame,
   label: { x: number; y: number },
+  design: MmRect = artwork,
 ): Promise<MirroredHem> {
   const sourceWidth = px(artwork.width);
   const sourceHeight = px(artwork.height);
-  const source = await renderFlag(svgText, sourceWidth, sourceHeight);
+  const source = await renderCloth(svgText, artwork, design, sourceWidth, sourceHeight);
   const pixels = source.data;
   const pieces = hemPieceRects(artwork, frame).map((rect) =>
     piece(
@@ -174,6 +175,44 @@ export function svgForHemRaster(svgText: string, width: number, height: number):
     const cleaned = attrs.replace(/\s(?:width|height|preserveAspectRatio)="[^"]*"/g, "");
     return `<svg${cleaned} width="${width}" height="${height}" preserveAspectRatio="none">`;
   });
+}
+
+async function renderCloth(
+  svgText: string,
+  artwork: MmRect,
+  design: MmRect,
+  width: number,
+  height: number,
+): Promise<ImageData> {
+  const samePiece =
+    Math.abs(design.x - artwork.x) < 0.05 &&
+    Math.abs(design.y - artwork.y) < 0.05 &&
+    Math.abs(design.width - artwork.width) < 0.05 &&
+    Math.abs(design.height - artwork.height) < 0.05;
+  if (samePiece) return renderFlag(svgText, width, height);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) throw new Error("Could not read the flag");
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
+  const designWidth = px(design.width);
+  const designHeight = px(design.height);
+  const flag = await renderFlag(svgText, designWidth, designHeight);
+  const flagCanvas = document.createElement("canvas");
+  flagCanvas.width = designWidth;
+  flagCanvas.height = designHeight;
+  const flagContext = flagCanvas.getContext("2d");
+  if (!flagContext) throw new Error("Could not read the flag");
+  flagContext.putImageData(flag, 0, 0);
+  context.drawImage(
+    flagCanvas,
+    Math.round(((design.x - artwork.x) / artwork.width) * width),
+    Math.round(((design.y - artwork.y) / artwork.height) * height),
+  );
+  return context.getImageData(0, 0, width, height);
 }
 
 async function renderFlag(

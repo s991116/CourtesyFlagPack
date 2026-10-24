@@ -341,7 +341,7 @@ h1 {
 }
 
 .slot-flag {
-  align-items: flex-start;
+  align-items: center;
 }
 
 .slot-remove {
@@ -366,8 +366,21 @@ h1 {
 }
 
 .clear {
-  margin-top: 12px;
+  margin: 0;
   padding: 6px 10px;
+}
+
+.print-area {
+  margin: 0 0 0 auto;
+  white-space: nowrap;
+}
+
+.sheet-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
 }
 
 .sheet-footer {

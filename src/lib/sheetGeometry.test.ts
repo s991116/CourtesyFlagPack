@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { PrintLayout } from "../config/print";
 import { printLayout } from "../config/print";
 import type { Flag } from "../types/flag";
+import { flagClothById } from "../data/sheet";
 import { fittedFlagSize } from "./flagSize";
 import { buildSheetGeometry, type MmRect, type SheetMark } from "./sheetGeometry";
 
@@ -44,19 +45,46 @@ describe("sheet geometry", () => {
     );
   });
 
-  it("fills 30 cm by 40 cm and keeps the hem, cut, and label", () => {
+  it("fills 30 cm by 45 cm and keeps the hem, cut, and label", () => {
     const source = flag("gb", 1, 2, "United Kingdom");
-    const sheet = buildSheetGeometry([source], 2, 2, layout, "fixed");
+    const sheet = buildSheetGeometry(
+      [source],
+      2,
+      2,
+      layout,
+      flagClothById("45x30"),
+      "stretched",
+    );
     const placed = sheet.flags[0];
 
-    expect(placed.artwork.width).toBe(400);
+    expect(placed.artwork.width).toBe(450);
     expect(placed.artwork.height).toBe(300);
+    expect(placed.design).toEqual(placed.artwork);
     expect(placed.artwork.x - placed.cut.x).toBe(layout.hemMm);
     expect(placed.artwork.y - placed.cut.y).toBe(layout.hemMm);
     expect(cutOutline(sheet.marks, placed.cut)).toBe(true);
     expect(placed.label.x).toBeCloseTo(placed.cut.x + layout.hemMm / 2);
     expect(placed.label.y).toBeCloseTo(placed.artwork.y + placed.artwork.height / 2);
     expect(placed.label.angle).toBe(90);
+  });
+
+  it("centers the official ratio on a full cloth at max size", () => {
+    const sheet = buildSheetGeometry(
+      [flag("gb", 1, 2, "United Kingdom")],
+      1,
+      1,
+      layout,
+      flagClothById("30x20"),
+      "max",
+    );
+    const placed = sheet.flags[0];
+
+    expect(placed.artwork.width).toBe(300);
+    expect(placed.artwork.height).toBe(200);
+    expect(placed.design.width).toBe(300);
+    expect(placed.design.height).toBe(150);
+    expect(placed.design.x).toBeCloseTo(placed.artwork.x);
+    expect(placed.design.y).toBeCloseTo(placed.artwork.y + 25);
   });
 
   it("places one flag at its finished size, with hem outside the artwork", () => {

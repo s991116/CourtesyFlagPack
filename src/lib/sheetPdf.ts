@@ -4,8 +4,10 @@ import type { Flag } from "../types/flag";
 import { renderMirroredHem } from "./flagHem";
 import { stretchFlagArtwork, stripClipPaintOpacity } from "./flagSvg";
 import { colorFrame } from "./hemColor";
-import type { FlagProportion } from "./flagSize";
+import type { FlagCloth } from "../data/sheet";
+import type { FlagFit } from "./flagSize";
 import { fittedLabelFontMm, labelBaselineFromCutMm, labelOutlineEm } from "./labelFit";
+import { sheetFileName } from "./printArea";
 import { buildSheetGeometry, type SheetGeometry } from "./sheetGeometry";
 
 export function createSheetDocument(
@@ -99,17 +101,31 @@ export async function embedFlagArtwork(
       placed.artwork,
       colorFrame(placed),
       placed.label,
+      placed.design,
     );
     for (const part of hem.pieces) {
       doc.addImage(part.png, "PNG", part.x, part.y, part.width, part.height);
     }
+    if (
+      placed.design.width < placed.artwork.width - 0.05 ||
+      placed.design.height < placed.artwork.height - 0.05
+    ) {
+      doc.setFillColor(255, 255, 255);
+      doc.rect(
+        placed.artwork.x,
+        placed.artwork.y,
+        placed.artwork.width,
+        placed.artwork.height,
+        "F",
+      );
+    }
     const parsed = new DOMParser().parseFromString(printable, "image/svg+xml");
     const element = parsed.documentElement;
     await svg2pdf(element, doc, {
-      x: placed.artwork.x,
-      y: placed.artwork.y,
-      width: placed.artwork.width,
-      height: placed.artwork.height,
+      x: placed.design.x,
+      y: placed.design.y,
+      width: placed.design.width,
+      height: placed.design.height,
     });
   }
 }
@@ -133,9 +149,10 @@ export async function buildSheetPdf(
   flags: readonly Flag[],
   columns: number,
   rows: number,
-  proportion: FlagProportion = "original",
+  cloth: FlagCloth,
+  fit: FlagFit,
 ): Promise<jsPDF> {
-  const geometry = buildSheetGeometry(flags, columns, rows, printLayout, proportion);
+  const geometry = buildSheetGeometry(flags, columns, rows, printLayout, cloth, fit);
   const doc = new jsPDF({
     unit: "mm",
     format: [geometry.pageWidthMm, geometry.pageHeightMm],
@@ -152,8 +169,11 @@ export async function downloadSheetPdf(
   flags: readonly Flag[],
   columns: number,
   rows: number,
-  proportion: FlagProportion = "original",
+  cloth: FlagCloth,
+  fit: FlagFit,
 ) {
-  const doc = await buildSheetPdf(flags, columns, rows, proportion);
-  doc.save("courtesy-flags.pdf");
+  const doc = await buildSheetPdf(flags, columns, rows, cloth, fit);
+  const widthMm = doc.internal.pageSize.getWidth();
+  const heightMm = doc.internal.pageSize.getHeight();
+  doc.save(sheetFileName(widthMm, heightMm));
 }

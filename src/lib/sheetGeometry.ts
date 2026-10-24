@@ -1,6 +1,7 @@
 import { printLayout, type PrintLayout } from "../config/print";
 import type { Flag } from "../types/flag";
-import { artworkSize, type FlagProportion } from "./flagSize";
+import { flagClothById, type FlagCloth } from "../data/sheet";
+import { designSize, pieceSize, type FlagFit } from "./flagSize";
 import { sheetCapacity } from "./layout";
 
 export type MmRect = {
@@ -28,7 +29,10 @@ export type HemLabel = {
 
 export type PlacedFlag = {
   id: string;
+  /** Finished cloth, inside the hem. */
   artwork: MmRect;
+  /** The flag picture. On max size it sits inside the cloth. */
+  design: MmRect;
   cut: MmRect;
   label: HemLabel;
 };
@@ -59,7 +63,8 @@ export function buildSheetGeometry(
   columns: number,
   rows: number,
   layout: PrintLayout = printLayout,
-  proportion: FlagProportion = "original",
+  cloth: FlagCloth = flagClothById("45x30"),
+  fit: FlagFit = "original",
 ): SheetGeometry {
   const count = Math.min(flags.length, sheetCapacity(columns, rows));
   if (count === 0 || columns <= 0 || rows <= 0) return emptySheet;
@@ -67,15 +72,18 @@ export function buildSheetGeometry(
   const usedColumns = Math.min(columns, count);
   const usedRows = Math.ceil(count / columns);
   const pieces = flags.slice(0, count).map((flag, index) => {
-    const fitted = artworkSize(flag, proportion);
-    const artworkWidth = fitted.lengthCm * 10;
-    const artworkHeight = fitted.heightCm * 10;
+    const bounds = pieceSize(flag, cloth, fit);
+    const picture = designSize(flag, cloth, fit);
+    const artworkWidth = bounds.lengthCm * 10;
+    const artworkHeight = bounds.heightCm * 10;
     return {
       flag,
       column: index % columns,
       row: Math.floor(index / columns),
       artworkWidth,
       artworkHeight,
+      designWidth: picture.lengthCm * 10,
+      designHeight: picture.heightCm * 10,
       cutWidth: artworkWidth + layout.hemMm * 2,
       cutHeight: artworkHeight + layout.hemMm * 2,
     };
@@ -132,9 +140,16 @@ export function buildSheetGeometry(
       width: piece.artworkWidth,
       height: piece.artworkHeight,
     };
+    const design: MmRect = {
+      x: artwork.x + (artwork.width - piece.designWidth) / 2,
+      y: artwork.y + (artwork.height - piece.designHeight) / 2,
+      width: piece.designWidth,
+      height: piece.designHeight,
+    };
     placed.push({
       id: piece.flag.id,
       artwork,
+      design,
       cut,
       label: {
         text: piece.flag.hemLabel,

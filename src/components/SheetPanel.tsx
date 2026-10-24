@@ -1,7 +1,15 @@
 import { useState } from "react";
+import { printLayout } from "../config/print";
 import { flagById } from "../data/flags";
+import {
+  flagClothById,
+  flagCloths,
+  type FlagClothId,
+} from "../data/sheet";
 import { trackDownloadPdf } from "../lib/analytics";
-import { slotFlagStyle, type FlagProportion } from "../lib/flagSize";
+import { printAreaLabel } from "../lib/printArea";
+import { slotFlagStyle, type FlagFit } from "../lib/flagSize";
+import { buildSheetGeometry } from "../lib/sheetGeometry";
 import { FlagArtwork } from "./FlagArtwork";
 
 type SheetPanelProps = {
@@ -9,8 +17,10 @@ type SheetPanelProps = {
   columns: number;
   perRowOptions: readonly number[];
   onColumns: (columns: number) => void;
-  proportion: FlagProportion;
-  onProportion: (proportion: FlagProportion) => void;
+  clothId: FlagClothId;
+  onCloth: (clothId: FlagClothId) => void;
+  fit: FlagFit;
+  onFit: (fit: FlagFit) => void;
   onRemove: (id: string) => void;
   onClear: () => void;
 };
@@ -19,7 +29,8 @@ type SheetDownloadProps = {
   selectedIds: readonly string[];
   columns: number;
   rows: number;
-  proportion: FlagProportion;
+  clothId: FlagClothId;
+  fit: FlagFit;
 };
 
 export function SheetPanel({
@@ -27,8 +38,10 @@ export function SheetPanel({
   columns,
   perRowOptions,
   onColumns,
-  proportion,
-  onProportion,
+  clothId,
+  onCloth,
+  fit,
+  onFit,
   onRemove,
   onClear,
 }: SheetPanelProps) {
@@ -36,6 +49,10 @@ export function SheetPanel({
     const flag = flagById(id);
     return flag ? [flag] : [];
   });
+  const cloth = flagClothById(clothId);
+  const rows = Math.max(1, Math.ceil(flags.length / columns));
+  const sheet = buildSheetGeometry(flags, columns, rows, printLayout, cloth, fit);
+  const printArea = printAreaLabel(sheet.pageWidthMm, sheet.pageHeightMm);
 
   return (
     <aside className="sheet" aria-label="Selected sheet">
@@ -58,17 +75,31 @@ export function SheetPanel({
             </label>
             <label className="sheet-select">
               <select
-                aria-label="Flag shape"
-                value={proportion}
+                aria-label="Print size"
+                value={clothId}
                 onChange={(event) => {
                   const value = event.target.value;
-                  if (value === "original" || value === "fixed") {
-                    onProportion(value);
-                  }
+                  if (value === "45x30" || value === "30x20") onCloth(value);
                 }}
               >
-                <option value="original">Original ratio</option>
-                <option value="fixed">40 × 30 cm</option>
+                {flagCloths.map((cloth) => (
+                  <option key={cloth.id} value={cloth.id}>
+                    {cloth.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="sheet-select">
+              <select
+                aria-label="Flag shape"
+                value={fit}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (value === "stretched" || value === "max") onFit(value);
+                }}
+              >
+                <option value="stretched">Stretched</option>
+                <option value="max">Original</option>
               </select>
             </label>
           </div>
@@ -87,8 +118,8 @@ export function SheetPanel({
           >
             {flags.map((flag) => (
               <li key={flag.id} className="slot">
-                <span className="slot-flag" style={slotFlagStyle()}>
-                  <FlagArtwork flag={flag} proportion={proportion} />
+                <span className="slot-flag" style={slotFlagStyle(flag, cloth, fit)}>
+                  <FlagArtwork flag={flag} cloth={cloth} printFit={fit} />
                 </span>
                 <span className="slot-foot">
                   <span className="slot-name" title={flag.hemLabel}>
@@ -115,9 +146,12 @@ export function SheetPanel({
               </li>
             ))}
           </ol>
-          <button type="button" className="clear" onClick={onClear}>
-            Clear selection
-          </button>
+          <div className="sheet-actions">
+            <button type="button" className="clear" onClick={onClear}>
+              Clear selection
+            </button>
+            <p className="print-area">{printArea}</p>
+          </div>
         </>
       )}
     </aside>
@@ -128,7 +162,8 @@ export function SheetDownload({
   selectedIds,
   columns,
   rows,
-  proportion,
+  clothId,
+  fit,
 }: SheetDownloadProps) {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
@@ -142,7 +177,7 @@ export function SheetDownload({
     setDownloadError("");
     try {
       const { downloadSheetPdf } = await import("../lib/sheetPdf");
-      await downloadSheetPdf(selected, columns, rows, proportion);
+      await downloadSheetPdf(selected, columns, rows, flagClothById(clothId), fit);
       trackDownloadPdf();
     } catch {
       setDownloadError("The PDF could not be created.");

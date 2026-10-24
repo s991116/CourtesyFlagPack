@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
-import { catalogFlagStyle, flagImageStyle, type FlagProportion } from "../lib/flagSize";
+import { catalogFlagStyle, flagImageStyle, type FlagFit } from "../lib/flagSize";
+import type { FlagCloth } from "../data/sheet";
 import type { Flag } from "../types/flag";
 
 type FlagArtworkProps = {
   flag: Flag;
-  proportion?: FlagProportion;
+  cloth?: FlagCloth;
+  printFit?: FlagFit;
   /** Catalog cards share Albania's height. The sheet keeps the print size. */
   fit?: "sheet" | "catalog";
   children?: ReactNode;
@@ -13,12 +15,15 @@ type FlagArtworkProps = {
 /** Official ratio box. The 4:3 file is stretched so the border sits on the cloth. */
 export function FlagArtwork({
   flag,
-  proportion = "original",
+  cloth,
+  printFit = "stretched",
   fit = "sheet",
   children,
 }: FlagArtworkProps) {
   const style =
-    fit === "catalog" ? catalogFlagStyle(flag) : flagImageStyle(flag, proportion);
+    fit === "catalog" || !cloth
+      ? catalogFlagStyle(flag)
+      : flagImageStyle(flag, cloth, printFit);
   return (
     <span className="flag-image" style={style}>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">

@@ -2,9 +2,9 @@ import { useMemo, useState } from "react";
 import { FlagPicker } from "./components/FlagPicker";
 import { SheetDownload, SheetPanel } from "./components/SheetPanel";
 import { flagById, flags } from "./data/flags";
-import { defaultFlagsPerRow, flagsPerRowOptions } from "./data/sheet";
+import { defaultFlagClothId, defaultFlagsPerRow, flagsPerRowOptions, type FlagClothId } from "./data/sheet";
 import { filterFlags } from "./lib/catalog";
-import type { FlagProportion } from "./lib/flagSize";
+import { defaultFlagFit, type FlagFit } from "./lib/flagSize";
 import { removeSelection, toggleSelection } from "./lib/selection";
 import type { FlagKind, Region } from "./types/flag";
 
@@ -14,7 +14,8 @@ export function App() {
   const [kind, setKind] = useState<FlagKind | "all">("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [columns, setColumns] = useState(defaultFlagsPerRow);
-  const [proportion, setProportion] = useState<FlagProportion>("original");
+  const [clothId, setClothId] = useState<FlagClothId>(defaultFlagClothId);
+  const [fit, setFit] = useState<FlagFit>(defaultFlagFit);
 
   const visibleFlags = useMemo(
     () => filterFlags(flags, query, region, kind),
@@ -64,8 +65,10 @@ export function App() {
           columns={columns}
           perRowOptions={flagsPerRowOptions}
           onColumns={setColumns}
-          proportion={proportion}
-          onProportion={setProportion}
+          clothId={clothId}
+          onCloth={setClothId}
+          fit={fit}
+          onFit={setFit}
           onRemove={remove}
           onClear={() => setSelectedIds([])}
         />
@@ -75,7 +78,8 @@ export function App() {
         selectedIds={selectedIds.filter((id) => flagById(id))}
         columns={columns}
         rows={sheetRows}
-        proportion={proportion}
+        clothId={clothId}
+        fit={fit}
       />
     </div>
   );
