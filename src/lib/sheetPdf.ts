@@ -10,6 +10,18 @@ import { fittedLabelFontMm, labelBaselineFromCutMm, labelOutlineEm } from "./lab
 import { sheetFileName } from "./printArea";
 import { buildSheetGeometry, type SheetGeometry } from "./sheetGeometry";
 
+/** Lossless Flate packing. jsPDF otherwise stores the hem pixels uncompressed. */
+export function addHemImage(
+  doc: jsPDF,
+  png: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  doc.addImage(png, "PNG", x, y, width, height, undefined, "SLOW");
+}
+
 export function createSheetDocument(
   geometry: SheetGeometry,
   layout: PrintLayout = printLayout,
@@ -103,7 +115,7 @@ export async function embedFlagArtwork(
         placed.outline,
         placed.cutOutline,
       );
-      doc.addImage(hem.png, "PNG", hem.x, hem.y, hem.width, hem.height);
+      addHemImage(doc, hem.png, hem.x, hem.y, hem.width, hem.height);
     } else {
       const hem = await renderMirroredHem(
         printable,
@@ -113,7 +125,7 @@ export async function embedFlagArtwork(
         placed.design,
       );
       for (const part of hem.pieces) {
-        doc.addImage(part.png, "PNG", part.x, part.y, part.width, part.height);
+        addHemImage(doc, part.png, part.x, part.y, part.width, part.height);
       }
     }
     if (

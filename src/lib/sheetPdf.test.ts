@@ -1,3 +1,5 @@
+import { deflateSync, inflateSync } from "node:zlib";
+import { jsPDF } from "jspdf";
 import { describe, expect, it } from "vitest";
 import { printLayout } from "../config/print";
 import type { Flag } from "../types/flag";
@@ -8,7 +10,7 @@ import {
   labelBaselineFromCutMm,
   labelOutlineEm,
 } from "./labelFit";
-import { createSheetDocument } from "./sheetPdf";
+import { addHemImage, createSheetDocument } from "./sheetPdf";
 import { buildSheetGeometry } from "./sheetGeometry";
 
 function textAnchor(
@@ -176,3 +178,122 @@ describe("sheet pdf page", () => {
     expect(output).toMatch(/\[4\.251\d* 4\.251\d*\]/);
   });
 });
+
+describe("hem image compression", () => {
+  it("stores the same pixels in a much smaller Flate stream", () => {
+    const width = 900;
+    const height = 80;
+    const pixels = stripePixels(width, height);
+    const doc = new jsPDF({ unit: "mm", format: [200, 100] });
+    addHemImage(doc, pngDataUrl(width, height, pixels), 0, 0, 90, 12);
+    const raw = new jsPDF({ unit: "mm", format: [200, 100] });
+    raw.addImage(pngDataUrl(width, height, pixels), "PNG", 0, 0, 90, 12);
+
+    const output = doc.output();
+    const image = output.slice(output.indexOf("/Subtype /Image"));
+    expect(image).toContain("/Filter /FlateDecode");
+    expect(image).toContain("/ColorSpace /DeviceRGB");
+    expect(image).not.toContain("/SMask");
+    expect(doc.output("arraybuffer").byteLength).toBeLessThan(
+      raw.output("arraybuffer").byteLength / 5,
+    );
+    expect(decodeHemImage(output, width, height)).toEqual(pixels);
+  });
+});
+
+function stripePixels(width: number, height: number): Uint8Array {
+  const pixels = new Uint8Array(width * height * 3);
+  for (let y = 0; y < height; y += 1) {
+    const band = Math.floor((y / height) * 3);
+    const color = [
+      [198, 12, 48],
+      [255, 255, 255],
+      [0, 82, 165],
+    ][band];
+    for (let x = 0; x < width; x += 1) {
+      pixels.set(color, (y * width + x) * 3);
+    }
+  }
+  return pixels;
+}
+
+function pngDataUrl(width: number, height: number, rgb: Uint8Array): string {
+  const raw = Buffer.alloc((width * 4 + 1) * height);
+  for (let y = 0; y < height; y += 1) {
+    const row = y * (width * 4 + 1);
+    for (let x = 0; x < width; x += 1) {
+      const from = (y * width + x) * 3;
+      const to = row + 1 + x * 4;
+      raw[to] = rgb[from];
+      raw[to + 1] = rgb[from + 1];
+      raw[to + 2] = rgb[from + 2];
+      raw[to + 3] = 255;
+    }
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 6;
+  const png = Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    pngChunk("IHDR", ihdr),
+    pngChunk("IDAT", deflateSync(raw)),
+    pngChunk("IEND", Buffer.alloc(0)),
+  ]);
+  return `data:image/png;base64,${png.toString("base64")}`;
+}
+
+function pngChunk(type: string, data: Buffer): Buffer {
+  const body = Buffer.concat([Buffer.from(type), data]);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(pngCrc(body));
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length);
+  return Buffer.concat([length, body, crc]);
+}
+
+function pngCrc(buf: Buffer): number {
+  let crc = ~0;
+  for (let i = 0; i < buf.length; i += 1) {
+    crc ^= buf[i];
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    }
+  }
+  return ~crc >>> 0;
+}
+
+function decodeHemImage(pdf: string, width: number, height: number): Uint8Array {
+  const image = pdf.slice(pdf.indexOf("/Subtype /Image"));
+  const start = image.indexOf("stream\n") + "stream\n".length;
+  const end = image.indexOf("\nendstream");
+  const packed = inflateSync(Buffer.from(image.slice(start, end), "latin1"));
+  const colors = 3;
+  const stride = width * colors;
+  const pixels = new Uint8Array(height * stride);
+  let previous = new Uint8Array(stride);
+  for (let y = 0; y < height; y += 1) {
+    const row = packed.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1));
+    const decoded = new Uint8Array(stride);
+    for (let i = 0; i < stride; i += 1) {
+      const left = i >= colors ? decoded[i - colors] : 0;
+      const up = previous[i];
+      const upLeft = i >= colors ? previous[i - colors] : 0;
+      decoded[i] = (row[i] + paeth(left, up, upLeft)) & 255;
+    }
+    pixels.set(decoded, y * stride);
+    previous = decoded;
+  }
+  return pixels;
+}
+
+function paeth(left: number, up: number, upLeft: number): number {
+  const estimate = left + up - upLeft;
+  const towardLeft = Math.abs(estimate - left);
+  const towardUp = Math.abs(estimate - up);
+  const towardUpLeft = Math.abs(estimate - upLeft);
+  if (towardLeft <= towardUp && towardLeft <= towardUpLeft) return left;
+  if (towardUp <= towardUpLeft) return up;
+  return upLeft;
+}
