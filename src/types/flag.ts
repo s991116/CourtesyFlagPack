@@ -36,6 +36,8 @@ export type Flag = {
   detail?: string;
   /** Swallowtail flags are cut to that outline. Omitted flags are rectangles. */
   shape?: FlagShape;
+  /** Other places whose courtesy flag is this same flag. */
+  also?: readonly string[];
 };
 
 export type FlagShape = "swallowtail";

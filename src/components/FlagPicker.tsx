@@ -1,4 +1,4 @@
-import { flagKindLabel, flagKindLine } from "../lib/catalog";
+import { flagAlsoLine, flagKindLabel, flagKindLine } from "../lib/catalog";
 import { catalogStageStyle } from "../lib/flagSize";
 import type { Flag, FlagKind, Region } from "../types/flag";
 import { flagKinds, regions } from "../types/flag";
@@ -116,6 +116,11 @@ export function FlagPicker({
                     >
                       {flagKindLine(flag)}
                     </span>
+                    {flagAlsoLine(flag) ? (
+                      <span className="flag-also" title={flagAlsoLine(flag)}>
+                        {flagAlsoLine(flag)}
+                      </span>
+                    ) : null}
                   </span>
                   {position ? (
                     <span className="order-badge">{position}</span>

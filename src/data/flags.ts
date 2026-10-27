@@ -11,7 +11,7 @@ export const flags: readonly Flag[] = flagEntries
     return {
       id: entry.id,
       iso: entry.id,
-      labels: [entry.name, ...(entry.labels ?? [])],
+      labels: [entry.name, ...(entry.also ?? []), ...(entry.labels ?? [])],
       hemLabel: entry.name,
       ratio: { height, length },
       asset: { svg: `/flags/${entry.id}.svg` },
@@ -19,6 +19,7 @@ export const flags: readonly Flag[] = flagEntries
       kind: entry.kind ?? "national",
       detail: entry.detail,
       shape: entry.shape,
+      also: entry.also,
     };
   })
   .sort((a, b) => a.hemLabel.localeCompare(b.hemLabel, "en", { sensitivity: "base" }));

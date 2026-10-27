@@ -34,6 +34,10 @@ Each of these files keeps the license named here.
 - re.svg — Proposed flag of Réunion (VAR). Public domain.
 - wf.svg — Flag of Wallis and Futuna. Public domain.
 - yt.svg — Flag of Mayotte (local). Public domain.
+- pt-20.svg — Flag of the Azores. Public domain, from the Xrmap flag collection.
+- pt-30.svg — Flag of Madeira. Drawn for this project.
+- gb-shet.svg — Flag of Shetland. Drawn for this project.
+- vg.svg — British Virgin Islands civil ensign. The flag-icons blue ensign with the field changed to red, for the courtesy flag.
 - q.svg — Plain yellow quarantine flag (maritime signal flag Q). Drawn for this project.
 - dive.svg — Red diver-down flag with a white diagonal stripe. Drawn for this project.
 - distress.svg — Orange distress signal with a black square and circle. Drawn for this project.

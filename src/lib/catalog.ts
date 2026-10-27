@@ -9,8 +9,8 @@ export function filterFlags(
 ): Flag[] {
   const needle = query.trim().toLowerCase();
   return flags.filter((flag) => {
-    if (region !== "all" && flag.region !== region) return false;
     if (kind !== "all" && flag.kind !== kind) return false;
+    if (kind !== "special" && region !== "all" && flag.region !== region) return false;
     if (!needle) return true;
     const kindWords =
       flag.kind === "regional"
@@ -39,4 +39,10 @@ export function flagKindLine(flag: Flag): string {
   if (flag.kind === "special") return `Special - ${flag.detail}`;
   const name = flag.kind === "regional" ? "Regional" : "National";
   return `${name} - ${flag.iso.toUpperCase()}`;
+}
+
+/** Places that fly this same flag. */
+export function flagAlsoLine(flag: Flag): string | undefined {
+  if (!flag.also?.length) return undefined;
+  return `Also ${flag.also.join(", ")}`;
 }

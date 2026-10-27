@@ -21,6 +21,8 @@ export type FlagEntry = {
   detail?: string;
   shape?: "swallowtail";
   labels?: readonly string[];
+  /** Places that fly this same courtesy flag. Shown on the card and used in search. */
+  also?: readonly string[];
 };
 
 export const flagEntries: readonly FlagEntry[] = [
@@ -105,7 +107,13 @@ export const flagEntries: readonly FlagEntry[] = [
   { id: "es", name: "Spain", region: "Europe" },
   { id: "fi", name: "Finland", region: "Europe", ratio: [11, 18] },
   { id: "fo", name: "Faroe Islands", region: "Europe", ratio: [8, 11] },
-  { id: "fr", name: "France", region: "Europe" },
+  {
+    id: "fr",
+    name: "France",
+    region: "Europe",
+    also: ["Saint Barthelemy", "Saint Martin"],
+    labels: ["Saint Barthélemy", "St Barts", "Saint-Martin"],
+  },
   { id: "gb", name: "United Kingdom", region: "Europe", ratio: [1, 2], labels: ["Britain", "UK", "Great Britain"] },
   { id: "gg", name: "Guernsey", region: "Europe" },
   { id: "gi", name: "Gibraltar", region: "Europe", ratio: [1, 2] },
@@ -124,7 +132,13 @@ export const flagEntries: readonly FlagEntry[] = [
   { id: "md", name: "Moldova", region: "Europe", ratio: [1, 2] },
   { id: "me", name: "Montenegro", region: "Europe", ratio: [1, 2] },
   { id: "mt", name: "Malta", region: "Europe" },
-  { id: "nl", name: "Netherlands", region: "Europe", labels: ["Holland"] },
+  {
+    id: "nl",
+    name: "Netherlands",
+    region: "Europe",
+    also: ["Saba", "Sint Eustatius"],
+    labels: ["Holland", "Saint Eustatius", "Statia"],
+  },
   { id: "no", name: "Norway", region: "Europe", ratio: [8, 11] },
   { id: "pl", name: "Poland", region: "Europe", ratio: [5, 8] },
   { id: "pt", name: "Portugal", region: "Europe" },
@@ -143,6 +157,9 @@ export const flagEntries: readonly FlagEntry[] = [
   { id: "es-pv", name: "Basque Country", region: "Europe", kind: "regional" },
   { id: "es-ga", name: "Galicia", region: "Europe", kind: "regional" },
   { id: "ic", name: "Canary Islands", region: "Europe", kind: "regional" },
+  { id: "pt-20", name: "Azores", region: "Europe", kind: "regional", labels: ["Portugal", "Portuguese", "Açores", "Acores"] },
+  { id: "pt-30", name: "Madeira", region: "Europe", kind: "regional", labels: ["Portugal", "Portuguese", "Maderia"] },
+  { id: "gb-shet", name: "Shetland", region: "Europe", ratio: [3, 5], kind: "regional", labels: ["Shetland Islands", "Scotland", "United Kingdom", "UK", "Britain"] },
   { id: "ai", name: "Anguilla", region: "Caribbean", ratio: [1, 2] },
   { id: "ag", name: "Antigua And Barbuda", region: "Caribbean" },
   { id: "aw", name: "Aruba", region: "Caribbean", kind: "regional", labels: ["Netherlands", "Holland", "Dutch"] },
@@ -150,7 +167,7 @@ export const flagEntries: readonly FlagEntry[] = [
   { id: "bb", name: "Barbados", region: "Caribbean" },
   { id: "bq", name: "Bonaire", region: "Caribbean", kind: "regional", labels: ["Netherlands", "Holland", "Dutch"] },
   { id: "bq-sa", name: "Saba", region: "Caribbean", kind: "regional", labels: ["Netherlands", "Holland", "Dutch"] },
-  { id: "bq-se", name: "Sint Eustatius", region: "Caribbean", kind: "regional", labels: ["Netherlands", "Holland", "Dutch", "Statia"] },
+  { id: "bq-se", name: "Sint Eustatius", region: "Caribbean", kind: "regional", labels: ["Saint Eustatius", "Netherlands", "Holland", "Dutch", "Statia"] },
   { id: "ky", name: "Cayman Islands", region: "Caribbean", ratio: [1, 2] },
   { id: "cu", name: "Cuba", region: "Caribbean", ratio: [1, 2] },
   { id: "cw", name: "Curacao", region: "Caribbean", kind: "regional", labels: ["Curaçao", "Netherlands", "Holland", "Dutch"] },
@@ -166,7 +183,7 @@ export const flagEntries: readonly FlagEntry[] = [
   { id: "bl", name: "Saint Barthelemy", region: "Caribbean", kind: "regional", labels: ["Saint Barthélemy", "St Barts", "France", "French"] },
   { id: "kn", name: "Saint Kitts And Nevis", region: "Caribbean" },
   { id: "lc", name: "Saint Lucia", region: "Caribbean", ratio: [1, 2] },
-  { id: "mf", name: "Saint Martin", region: "Caribbean", kind: "regional", labels: ["France", "French"] },
+  { id: "mf", name: "Saint Martin", region: "Caribbean", kind: "regional", labels: ["Saint-Martin", "France", "French"] },
   { id: "vc", name: "Saint Vincent", region: "Caribbean", labels: ["Saint Vincent and the Grenadines"] },
   { id: "sx", name: "Sint Maarten", region: "Caribbean", kind: "regional", labels: ["Netherlands", "Holland", "Dutch"] },
   { id: "tt", name: "Trinidad And Tobago", region: "Caribbean", ratio: [3, 5] },

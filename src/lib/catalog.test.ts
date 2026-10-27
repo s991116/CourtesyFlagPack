@@ -3,7 +3,7 @@ import { flags } from "../data/flags";
 import { maxFlagHeightCm, maxFlagLengthCm } from "../data/sheet";
 import { regions } from "../types/flag";
 import type { Flag } from "../types/flag";
-import { filterFlags, flagKindLabel, flagKindLine } from "./catalog";
+import { filterFlags, flagAlsoLine, flagKindLabel, flagKindLine } from "./catalog";
 import { fittedFlagSize } from "./flagSize";
 
 function sampleFlag(patch: Partial<Flag> & Pick<Flag, "id" | "hemLabel">): Flag {
@@ -109,6 +109,58 @@ describe("flag search", () => {
     ).toEqual(["aw", "bq", "bq-sa", "bq-se", "cw", "sx"]);
   });
 
+  it("finds a shared courtesy flag by the places that fly it", () => {
+    const france = flags.find((flag) => flag.id === "fr");
+    const netherlands = flags.find((flag) => flag.id === "nl");
+    expect(flagAlsoLine(france!)).toBe("Also Saint Barthelemy, Saint Martin");
+    expect(flagAlsoLine(netherlands!)).toBe("Also Saba, Sint Eustatius");
+    expect(filterFlags(flags, "saint barthelemy", "all").map((flag) => flag.id).sort()).toEqual([
+      "bl",
+      "fr",
+    ]);
+    expect(filterFlags(flags, "saint-martin", "all").map((flag) => flag.id).sort()).toEqual([
+      "fr",
+      "mf",
+    ]);
+    expect(filterFlags(flags, "saba", "all").map((flag) => flag.id).sort()).toEqual([
+      "bq-sa",
+      "nl",
+    ]);
+    expect(filterFlags(flags, "saint eustatius", "all").map((flag) => flag.id).sort()).toEqual([
+      "bq-se",
+      "nl",
+    ]);
+    expect(filterFlags(flags, "sint maarten", "all").map((flag) => flag.id)).toEqual(["sx"]);
+  });
+
+  it("lists Madeira, the Azores, and Shetland as optional European flags", () => {
+    expect(flags.find((flag) => flag.id === "pt-30")).toMatchObject({
+      hemLabel: "Madeira",
+      kind: "regional",
+      region: "Europe",
+    });
+    expect(flags.find((flag) => flag.id === "pt-20")).toMatchObject({
+      hemLabel: "Azores",
+      kind: "regional",
+      region: "Europe",
+      ratio: { height: 2, length: 3 },
+    });
+    expect(flags.find((flag) => flag.id === "gb-shet")).toMatchObject({
+      hemLabel: "Shetland",
+      kind: "regional",
+      region: "Europe",
+      ratio: { height: 3, length: 5 },
+    });
+    expect(filterFlags(flags, "maderia", "Europe").map((flag) => flag.id)).toEqual(["pt-30"]);
+    expect(filterFlags(flags, "acores", "all").map((flag) => flag.id)).toEqual(["pt-20"]);
+    expect(filterFlags(flags, "portugal", "Europe").map((flag) => flag.id).sort()).toEqual([
+      "pt",
+      "pt-20",
+      "pt-30",
+    ]);
+    expect(filterFlags(flags, "shetland", "Europe").map((flag) => flag.id)).toEqual(["gb-shet"]);
+  });
+
   it("lists quarantine, diver-down, and distress once under Special", () => {
     const quarantine = flags.filter((flag) => flag.hemLabel === "Quarantine Flag");
     expect(quarantine).toHaveLength(1);
@@ -119,8 +171,13 @@ describe("flag search", () => {
     });
     expect(filterFlags(flags, "", "all").map((flag) => flag.id)).toContain("q");
     expect(filterFlags(flags, "", "Europe").map((flag) => flag.id)).not.toContain("q");
-    expect(filterFlags(flags, "", "all", "special").map((flag) => flag.id)).toEqual(
-      flags.filter((flag) => flag.kind === "special").map((flag) => flag.id),
+    const specialIds = flags.filter((flag) => flag.kind === "special").map((flag) => flag.id);
+    expect(filterFlags(flags, "", "all", "special").map((flag) => flag.id)).toEqual(specialIds);
+    expect(filterFlags(flags, "", "Europe", "special").map((flag) => flag.id)).toEqual(
+      specialIds,
+    );
+    expect(filterFlags(flags, "", "Caribbean", "special").map((flag) => flag.id)).toEqual(
+      specialIds,
     );
     expect(filterFlags(flags, "quarantine", "all").map((flag) => flag.id)).toEqual(["q"]);
     expect(filterFlags(flags, "q-flag", "all").map((flag) => flag.id)).toEqual(["q"]);
