@@ -3,8 +3,10 @@ import type { PrintLayout } from "../config/print";
 import { printLayout } from "../config/print";
 import type { Flag } from "../types/flag";
 import { flagClothById } from "../data/sheet";
+import { flagById } from "../data/flags";
 import { fittedFlagSize } from "./flagSize";
 import { buildSheetGeometry, type MmRect, type SheetMark } from "./sheetGeometry";
+import { edgeDistance } from "./flagShape";
 
 const layout: PrintLayout = {
   hemMm: 10,
@@ -33,6 +35,118 @@ function flag(id: string, height: number, length: number, label = id): Flag {
 }
 
 describe("sheet geometry", () => {
+  it("keeps the alpha swallowtail at max size with the same hem width", () => {
+    const alpha = {
+      ...flag("alpha", 30, 45, "Alpha Flag"),
+      shape: "swallowtail" as const,
+    };
+    const sheet = buildSheetGeometry(
+      [alpha],
+      1,
+      1,
+      layout,
+      flagClothById("45x30"),
+      "stretched",
+    );
+    const placed = sheet.flags[0];
+    expect(placed.artwork).toMatchObject({ width: 450, height: 300 });
+    expect(placed.artwork.x - placed.cut.x).toBeCloseTo(layout.hemMm);
+    expect(placed.artwork.y - placed.cut.y).toBeCloseTo(layout.hemMm);
+    expect(placed.outline).toHaveLength(5);
+    expect(placed.cutOutline).toHaveLength(5);
+    const outline = placed.outline ?? [];
+    const cutOutline = placed.cutOutline ?? [];
+    for (let index = 0; index < outline.length; index += 1) {
+      const start = outline[index];
+      const end = outline[(index + 1) % outline.length];
+      expect(edgeDistance(cutOutline[index], start, end)).toBeCloseTo(layout.hemMm);
+      expect(edgeDistance(cutOutline[(index + 1) % cutOutline.length], start, end)).toBeCloseTo(
+        layout.hemMm,
+      );
+    }
+    expect(outline[2].x).toBeCloseTo(placed.artwork.x + 450 * 0.75);
+    expect(outline[2].y).toBeCloseTo(placed.artwork.y + 150);
+    expect(placed.label.x).toBeGreaterThan(placed.cut.x);
+    expect(placed.label.x).toBeLessThan(placed.artwork.x);
+    expect(sheet.marks.filter((mark) => mark.kind === "fold")).toHaveLength(5);
+    expect(sheet.marks.filter((mark) => mark.kind === "cut")).toHaveLength(5);
+  });
+
+  it("uses the same hem width on swallowtail and square signal flags", () => {
+    const alpha = flagById("sig-a");
+    const charlie = flagById("sig-c");
+    const cloth = flagClothById("45x30");
+    const placedA = buildSheetGeometry([alpha!], 1, 1, printLayout, cloth, "stretched").flags[0];
+    const outline = placedA.outline ?? [];
+    const cutOutline = placedA.cutOutline ?? [];
+    expect(outline).toHaveLength(5);
+    for (let index = 0; index < outline.length; index += 1) {
+      const start = outline[index];
+      const end = outline[(index + 1) % outline.length];
+      expect(edgeDistance(cutOutline[index], start, end)).toBeCloseTo(printLayout.hemMm);
+      expect(edgeDistance(cutOutline[(index + 1) % cutOutline.length], start, end)).toBeCloseTo(
+        printLayout.hemMm,
+      );
+    }
+    const placedC = buildSheetGeometry([charlie!], 1, 1, printLayout, cloth, "stretched").flags[0];
+    expect(placedC.outline).toBeUndefined();
+    expect(placedC.artwork.width).toBe(300);
+    expect(placedC.artwork.height).toBe(300);
+    expect(placedC.artwork.x - placedC.cut.x).toBe(printLayout.hemMm);
+    expect(placedC.artwork.y - placedC.cut.y).toBe(printLayout.hemMm);
+    expect(placedC.cut.x + placedC.cut.width - (placedC.artwork.x + placedC.artwork.width)).toBe(
+      printLayout.hemMm,
+    );
+    expect(placedC.cut.y + placedC.cut.height - (placedC.artwork.y + placedC.artwork.height)).toBe(
+      printLayout.hemMm,
+    );
+  });
+
+  it("cuts a square flag around the square", () => {
+    const switzerland = flagById("ch");
+    const cloth = flagClothById("45x30");
+    const placed = buildSheetGeometry([switzerland!], 1, 1, printLayout, cloth, "max").flags[0];
+    expect(placed.artwork.width).toBe(300);
+    expect(placed.artwork.height).toBe(300);
+    expect(placed.design).toEqual(placed.artwork);
+    expect(placed.artwork.x - placed.cut.x).toBe(printLayout.hemMm);
+    expect(placed.cut.x + placed.cut.width - (placed.artwork.x + placed.artwork.width)).toBe(
+      printLayout.hemMm,
+    );
+    const stretched = buildSheetGeometry([switzerland!], 1, 1, printLayout, cloth, "stretched")
+      .flags[0];
+    expect(stretched.artwork.width).toBe(450);
+    expect(stretched.artwork.height).toBe(300);
+  });
+
+  it("keeps a square cut beside a wider flag instead of sharing its sides", () => {
+    const charlie = flagById("sig-c");
+    const denmark = flagById("dk");
+    const cloth = flagClothById("45x30");
+    const sheet = buildSheetGeometry(
+      [charlie!, denmark!],
+      2,
+      1,
+      printLayout,
+      cloth,
+      "stretched",
+    );
+    const [square, wide] = sheet.flags;
+    expect(square.cut).toMatchObject({ width: 340, height: 340 });
+    expect(wide.cut).toMatchObject({ width: 490, height: 340 });
+    expect(square.cut.y).toBe(wide.cut.y);
+    expect(square.cut.x + square.cut.width + printLayout.gutterMm).toBe(wide.cut.x);
+    const topFold = sheet.marks.find(
+      (mark) =>
+        mark.kind === "fold" &&
+        mark.y1 === square.artwork.y &&
+        mark.x1 === square.artwork.x &&
+        mark.y2 === square.artwork.y,
+    );
+    expect(topFold?.x2).toBe(square.artwork.x + square.artwork.width);
+    expect((topFold?.x2 ?? 0) - (topFold?.x1 ?? 0)).toBe(300);
+  });
+
   it("returns an empty sheet when nothing is selected", () => {
     expect(buildSheetGeometry([], 2, 2, layout)).toEqual({
       pageWidthMm: 0,

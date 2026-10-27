@@ -1,4 +1,4 @@
-import { flagKindLabel } from "../lib/catalog";
+import { flagKindLabel, flagKindLine } from "../lib/catalog";
 import { catalogStageStyle } from "../lib/flagSize";
 import type { Flag, FlagKind, Region } from "../types/flag";
 import { flagKinds, regions } from "../types/flag";
@@ -48,7 +48,7 @@ export function FlagPicker({
             aria-pressed={region === "all"}
             onClick={() => onRegion("all")}
           >
-            All
+            All Countries
           </button>
           {regions.map((item) => (
             <button
@@ -114,8 +114,7 @@ export function FlagPicker({
                           : "flag-kind"
                       }
                     >
-                      {flag.kind === "regional" ? "Regional" : "National"} -{" "}
-                      {flag.iso.toUpperCase()}
+                      {flagKindLine(flag)}
                     </span>
                   </span>
                   {position ? (

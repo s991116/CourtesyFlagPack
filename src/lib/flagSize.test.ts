@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { flags } from "../data/flags";
 import { flagClothById, maxFlagHeightCm, maxFlagLengthCm } from "../data/sheet";
 import type { Flag } from "../types/flag";
-import { catalogFlagStyle, designSize, fittedFlagSize, pieceSize } from "./flagSize";
+import {
+  catalogFlagStyle,
+  designSize,
+  fittedFlagSize,
+  pieceSize,
+  previewGridStyle,
+} from "./flagSize";
 
 function flag(height: number, length: number): Flag {
   return {
@@ -72,6 +78,54 @@ describe("fitted flag size", () => {
     );
     expect(fittedFlagSize(flag(28, 37), small).lengthCm).toBeLessThanOrEqual(30);
     expect(fittedFlagSize(flag(28, 37), small).heightCm).toBeLessThanOrEqual(20);
+  });
+
+  it("keeps a signal flag at its own ratio for stretched and original", () => {
+    const charlie = flags.find((item) => item.id === "sig-c");
+    const denmark = flag(28, 37);
+    if (!charlie) throw new Error("missing signal flag");
+    for (const fit of ["stretched", "max"] as const) {
+      expect(pieceSize(charlie, large, fit)).toEqual({ lengthCm: 30, heightCm: 30 });
+      expect(designSize(charlie, large, fit)).toEqual({ lengthCm: 30, heightCm: 30 });
+      expect(pieceSize(charlie, small, fit)).toEqual({ lengthCm: 20, heightCm: 20 });
+    }
+    expect(designSize(denmark, large, "stretched")).toEqual({
+      lengthCm: 45,
+      heightCm: 30,
+    });
+  });
+
+  it("cuts a square flag to the square unless it is stretched", () => {
+    const switzerland = flags.find((item) => item.id === "ch");
+    if (!switzerland) throw new Error("missing Switzerland");
+    expect(pieceSize(switzerland, large, "max")).toEqual({ lengthCm: 30, heightCm: 30 });
+    expect(designSize(switzerland, large, "max")).toEqual({ lengthCm: 30, heightCm: 30 });
+    expect(pieceSize(switzerland, large, "stretched")).toEqual({
+      lengthCm: 45,
+      heightCm: 30,
+    });
+  });
+
+  it("sizes the preview frame to the cut piece", () => {
+    const charlie = flags.find((item) => item.id === "sig-c");
+    const denmark = flags.find((item) => item.id === "dk");
+    if (!charlie || !denmark) throw new Error("missing flag");
+    expect(previewGridStyle([charlie], 4, large, "stretched")).toEqual({
+      gridTemplateColumns: "30fr",
+      width: `${(30 / 180) * 100}%`,
+    });
+    expect(previewGridStyle([charlie, denmark], 4, large, "stretched")).toEqual({
+      gridTemplateColumns: "30fr 45fr",
+      width: `${(75 / 180) * 100}%`,
+    });
+    expect(previewGridStyle([denmark, denmark, denmark, denmark], 4, large, "stretched")).toEqual({
+      gridTemplateColumns: "45fr 45fr 45fr 45fr",
+      width: "100%",
+    });
+    expect(previewGridStyle([charlie, charlie, denmark], 2, large, "stretched")).toEqual({
+      gridTemplateColumns: "45fr 30fr",
+      width: `${(75 / 90) * 100}%`,
+    });
   });
 
   it("shrinks catalog flags that are taller than Albania", () => {

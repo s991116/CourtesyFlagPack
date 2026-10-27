@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="flag-sig-g" viewBox="0 0 300 300">
+  <rect x="0" y="0" width="50" height="300" fill="#ffd100"/>
+  <rect x="50" y="0" width="50" height="300" fill="#0033a0"/>
+  <rect x="100" y="0" width="50" height="300" fill="#ffd100"/>
+  <rect x="150" y="0" width="50" height="300" fill="#0033a0"/>
+  <rect x="200" y="0" width="50" height="300" fill="#ffd100"/>
+  <rect x="250" y="0" width="50" height="300" fill="#0033a0"/>
+</svg>

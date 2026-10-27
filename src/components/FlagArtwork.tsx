@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { catalogFlagStyle, flagImageStyle, type FlagFit } from "../lib/flagSize";
+import { swallowtailClipPath } from "../lib/flagShape";
 import type { FlagCloth } from "../data/sheet";
 import type { Flag } from "../types/flag";
 
@@ -24,8 +25,12 @@ export function FlagArtwork({
     fit === "catalog" || !cloth
       ? catalogFlagStyle(flag)
       : flagImageStyle(flag, cloth, printFit);
+  const swallowtail = flag.shape === "swallowtail";
   return (
-    <span className="flag-image" style={style}>
+    <span
+      className={swallowtail ? "flag-image is-swallowtail" : "flag-image"}
+      style={swallowtail ? { ...style, clipPath: swallowtailClipPath() } : style}
+    >
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <image
           href={flag.asset.svg}

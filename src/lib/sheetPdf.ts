@@ -1,7 +1,7 @@
 import { jsPDF } from "jspdf";
 import { printLayout, type PrintLayout } from "../config/print";
 import type { Flag } from "../types/flag";
-import { renderMirroredHem } from "./flagHem";
+import { renderMirroredHem, renderShapedHem } from "./flagHem";
 import { stretchFlagArtwork, stripClipPaintOpacity } from "./flagSvg";
 import { colorFrame } from "./hemColor";
 import type { FlagCloth } from "../data/sheet";
@@ -96,19 +96,30 @@ export async function embedFlagArtwork(
     const svgText = svgById.get(placed.id);
     if (!svgText) continue;
     const printable = stretchFlagArtwork(stripClipPaintOpacity(svgText));
-    const hem = await renderMirroredHem(
-      printable,
-      placed.artwork,
-      colorFrame(placed),
-      placed.label,
-      placed.design,
-    );
-    for (const part of hem.pieces) {
-      doc.addImage(part.png, "PNG", part.x, part.y, part.width, part.height);
+    if (placed.outline && placed.cutOutline) {
+      const hem = await renderShapedHem(
+        printable,
+        placed.artwork,
+        placed.outline,
+        placed.cutOutline,
+      );
+      doc.addImage(hem.png, "PNG", hem.x, hem.y, hem.width, hem.height);
+    } else {
+      const hem = await renderMirroredHem(
+        printable,
+        placed.artwork,
+        colorFrame(placed),
+        placed.label,
+        placed.design,
+      );
+      for (const part of hem.pieces) {
+        doc.addImage(part.png, "PNG", part.x, part.y, part.width, part.height);
+      }
     }
     if (
-      placed.design.width < placed.artwork.width - 0.05 ||
-      placed.design.height < placed.artwork.height - 0.05
+      !placed.outline &&
+      (placed.design.width < placed.artwork.width - 0.05 ||
+        placed.design.height < placed.artwork.height - 0.05)
     ) {
       doc.setFillColor(255, 255, 255);
       doc.rect(

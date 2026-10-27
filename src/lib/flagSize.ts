@@ -38,13 +38,13 @@ export function fittedFlagSize(
   };
 }
 
-/** The picture drawn on the cloth. */
+/** The picture drawn on the cloth. Signal flags keep their own ratio. */
 export function designSize(
   flag: Flag,
   cloth: FlagCloth,
   fit: FlagFit,
 ): FittedFlag {
-  if (fit === "stretched") {
+  if (appliedFit(flag, fit) === "stretched") {
     return { heightCm: cloth.heightCm, lengthCm: cloth.lengthCm };
   }
   return fittedFlagSize(flag, cloth);
@@ -56,8 +56,43 @@ export function pieceSize(
   cloth: FlagCloth,
   fit: FlagFit,
 ): FittedFlag {
-  if (fit === "original") return fittedFlagSize(flag, cloth);
+  if (appliedFit(flag, fit) === "original") return fittedFlagSize(flag, cloth);
   return { heightCm: cloth.heightCm, lengthCm: cloth.lengthCm };
+}
+
+/** Signal flags keep their ratio. A square stays square unless it is stretched. */
+function appliedFit(flag: Flag, fit: FlagFit): FlagFit {
+  if (flag.detail === "Signal Flag") return "original";
+  if (fit !== "stretched" && flag.ratio.height === flag.ratio.length) return "original";
+  return fit;
+}
+
+/**
+ * Preview columns follow the cut piece. A square flag is only as wide as
+ * that square, and empty places in the row are left outside the frame.
+ */
+export function previewGridStyle(
+  flags: readonly Flag[],
+  columns: number,
+  cloth: FlagCloth,
+  fit: FlagFit,
+): { gridTemplateColumns: string; width: string } {
+  const used = Math.min(Math.max(columns, 1), flags.length);
+  const lengths = Array.from({ length: used }, () => 0);
+  for (let index = 0; index < flags.length; index += 1) {
+    const column = index % Math.max(columns, 1);
+    if (column >= used) continue;
+    lengths[column] = Math.max(
+      lengths[column],
+      pieceSize(flags[index], cloth, fit).lengthCm,
+    );
+  }
+  const fullRowCm = Math.max(columns, 1) * cloth.lengthCm;
+  const usedCm = lengths.reduce((sum, length) => sum + length, 0);
+  return {
+    gridTemplateColumns: lengths.map((length) => `${length}fr`).join(" "),
+    width: `${Math.min(100, (usedCm / fullRowCm) * 100)}%`,
+  };
 }
 
 /** The preview slot. Original ratio is only as large as the flag. */
@@ -66,7 +101,10 @@ export function slotFlagStyle(
   cloth: FlagCloth,
   fit: FlagFit,
 ): { aspectRatio: string } {
-  const size = fit === "original" ? designSize(flag, cloth, fit) : pieceSize(flag, cloth, fit);
+  const size =
+    appliedFit(flag, fit) === "original"
+      ? designSize(flag, cloth, fit)
+      : pieceSize(flag, cloth, fit);
   return { aspectRatio: `${size.lengthCm} / ${size.heightCm}` };
 }
 

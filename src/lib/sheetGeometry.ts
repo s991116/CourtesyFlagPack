@@ -2,6 +2,12 @@ import { printLayout, type PrintLayout } from "../config/print";
 import type { Flag } from "../types/flag";
 import { flagClothById, type FlagCloth } from "../data/sheet";
 import { designSize, pieceSize, type FlagFit } from "./flagSize";
+import {
+  finishedOutline,
+  offsetOutward,
+  polygonBounds,
+  type Point,
+} from "./flagShape";
 import { sheetCapacity } from "./layout";
 
 export type MmRect = {
@@ -34,6 +40,10 @@ export type PlacedFlag = {
   /** The flag picture. On max size it sits inside the cloth. */
   design: MmRect;
   cut: MmRect;
+  /** Finished edge when the flag is not a rectangle. */
+  outline?: Point[];
+  /** Cut edge, one hem outside `outline`. */
+  cutOutline?: Point[];
   label: HemLabel;
 };
 
@@ -76,6 +86,12 @@ export function buildSheetGeometry(
     const picture = designSize(flag, cloth, fit);
     const artworkWidth = bounds.lengthCm * 10;
     const artworkHeight = bounds.heightCm * 10;
+    const localOutline =
+      flag.shape === "swallowtail"
+        ? finishedOutline(artworkWidth, artworkHeight, flag.shape)
+        : null;
+    const localCut = localOutline ? offsetOutward(localOutline, layout.hemMm) : null;
+    const localCutBounds = localCut ? polygonBounds(localCut) : null;
     return {
       flag,
       column: index % columns,
@@ -84,8 +100,11 @@ export function buildSheetGeometry(
       artworkHeight,
       designWidth: picture.lengthCm * 10,
       designHeight: picture.heightCm * 10,
-      cutWidth: artworkWidth + layout.hemMm * 2,
-      cutHeight: artworkHeight + layout.hemMm * 2,
+      cutWidth: localCutBounds?.width ?? artworkWidth + layout.hemMm * 2,
+      cutHeight: localCutBounds?.height ?? artworkHeight + layout.hemMm * 2,
+      localOutline,
+      localCut,
+      localCutBounds,
     };
   });
 
@@ -134,23 +153,45 @@ export function buildSheetGeometry(
       width: piece.cutWidth,
       height: piece.cutHeight,
     };
-    const artwork: MmRect = {
-      x: cut.x + layout.hemMm,
-      y: cut.y + layout.hemMm,
-      width: piece.artworkWidth,
-      height: piece.artworkHeight,
-    };
+    const shift =
+      piece.localCutBounds === null
+        ? null
+        : {
+            x: cut.x - piece.localCutBounds.x,
+            y: cut.y - piece.localCutBounds.y,
+          };
+    const artwork: MmRect = shift
+      ? {
+          x: shift.x,
+          y: shift.y,
+          width: piece.artworkWidth,
+          height: piece.artworkHeight,
+        }
+      : {
+          x: cut.x + layout.hemMm,
+          y: cut.y + layout.hemMm,
+          width: piece.artworkWidth,
+          height: piece.artworkHeight,
+        };
     const design: MmRect = {
       x: artwork.x + (artwork.width - piece.designWidth) / 2,
       y: artwork.y + (artwork.height - piece.designHeight) / 2,
       width: piece.designWidth,
       height: piece.designHeight,
     };
+    const outline = shift
+      ? piece.localOutline?.map((point) => ({ x: point.x + shift.x, y: point.y + shift.y }))
+      : undefined;
+    const cutOutline = shift
+      ? piece.localCut?.map((point) => ({ x: point.x + shift.x, y: point.y + shift.y }))
+      : undefined;
     placed.push({
       id: piece.flag.id,
       artwork,
       design,
       cut,
+      outline,
+      cutOutline,
       label: {
         text: piece.flag.hemLabel,
         x: cut.x + layout.hemMm / 2,
@@ -158,11 +199,28 @@ export function buildSheetGeometry(
         angle: 90,
       },
     });
-    addFoldLines(marks, artwork);
-    addCutOutline(marks, cut);
+    if (outline && cutOutline) {
+      addPolygon(marks, "fold", outline);
+      addPolygon(marks, "cut", cutOutline);
+    } else {
+      addFoldLines(marks, artwork);
+      addCutOutline(marks, cut);
+    }
   }
 
   return { pageWidthMm, pageHeightMm, flags: placed, marks };
+}
+
+function addPolygon(
+  marks: SheetMark[],
+  kind: SheetMark["kind"],
+  points: readonly Point[],
+) {
+  for (let index = 0; index < points.length; index += 1) {
+    const start = points[index];
+    const end = points[(index + 1) % points.length];
+    marks.push({ kind, x1: start.x, y1: start.y, x2: end.x, y2: end.y });
+  }
 }
 
 function addCutOutline(marks: SheetMark[], cut: MmRect) {

@@ -24,14 +24,21 @@ export type Flag = {
   asset: {
     svg: string;
   };
-  /** Sailing area used by the picker filter. */
-  region: Region;
+  /** Sailing area used by the picker filter. Omitted for a special flag. */
+  region?: Region;
   /**
    * National is the courtesy flag for that place.
    * Regional is an optional flag flown in addition to the national one.
+   * Special covers quarantine, diver-down, distress, and the signal flags.
+   * `detail` is the text after "Special - " on those cards.
    */
   kind: FlagKind;
+  detail?: string;
+  /** Swallowtail flags are cut to that outline. Omitted flags are rectangles. */
+  shape?: FlagShape;
 };
+
+export type FlagShape = "swallowtail";
 
 export const regions = [
   "Europe",
@@ -46,6 +53,6 @@ export const regions = [
 
 export type Region = (typeof regions)[number];
 
-export const flagKinds = ["national", "regional"] as const;
+export const flagKinds = ["national", "regional", "special"] as const;
 
 export type FlagKind = (typeof flagKinds)[number];

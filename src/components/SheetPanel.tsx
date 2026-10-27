@@ -8,7 +8,7 @@ import {
 } from "../data/sheet";
 import { trackDownloadPdf } from "../lib/analytics";
 import { printAreaLabel } from "../lib/printArea";
-import { slotFlagStyle, type FlagFit } from "../lib/flagSize";
+import { previewGridStyle, slotFlagStyle, type FlagFit } from "../lib/flagSize";
 import { buildSheetGeometry } from "../lib/sheetGeometry";
 import { FlagArtwork } from "./FlagArtwork";
 
@@ -114,7 +114,7 @@ export function SheetPanel({
         <>
           <ol
             className="preview"
-            style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}
+            style={previewGridStyle(flags, columns, cloth, fit)}
           >
             {flags.map((flag) => (
               <li key={flag.id} className="slot">

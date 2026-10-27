@@ -6,6 +6,12 @@ import {
   type Rgb,
 } from "./hemColor";
 import type { MmRect } from "./sheetGeometry";
+import {
+  hemSourcePoint,
+  pointInPolygon,
+  polygonBounds,
+  type Point,
+} from "./flagShape";
 
 const pxPerMm = 8;
 
@@ -213,6 +219,94 @@ async function renderCloth(
     Math.round(((design.y - artwork.y) / artwork.height) * height),
   );
   return context.getImageData(0, 0, width, height);
+}
+
+/**
+ * Fold the same hem width around a swallowtail.
+ * The cloth outside the cut, and the flag itself, stay blank here;
+ * the flag picture is drawn on top.
+ */
+export async function renderShapedHem(
+  svgText: string,
+  artwork: MmRect,
+  outline: readonly Point[],
+  cutOutline: readonly Point[],
+): Promise<HemPiece> {
+  const bounds = polygonBounds(cutOutline);
+  const destWidth = px(bounds.width);
+  const destHeight = px(bounds.height);
+  const sourceWidth = px(artwork.width);
+  const sourceHeight = px(artwork.height);
+  const source = await renderFlag(svgText, sourceWidth, sourceHeight);
+  const canvas = document.createElement("canvas");
+  canvas.width = destWidth;
+  canvas.height = destHeight;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Could not draw the mirrored hem");
+  const image = context.createImageData(destWidth, destHeight);
+  const dest = image.data;
+  dest.fill(255);
+  const center = {
+    x: artwork.x + artwork.width / 2,
+    y: artwork.y + artwork.height / 2,
+  };
+  for (let row = 0; row < destHeight; row += 1) {
+    for (let column = 0; column < destWidth; column += 1) {
+      const mm = {
+        x: bounds.x + ((column + 0.5) / destWidth) * bounds.width,
+        y: bounds.y + ((row + 0.5) / destHeight) * bounds.height,
+      };
+      if (pointInPolygon(mm, outline) || !pointInPolygon(mm, cutOutline)) continue;
+      let sampleAt = hemSourcePoint(mm, outline);
+      let color = sampleSource(source, sourceWidth, sourceHeight, artwork, sampleAt);
+      let guard = 0;
+      while (color.a < 200 && guard < 6) {
+        sampleAt = {
+          x: sampleAt.x + (center.x - sampleAt.x) * 0.2,
+          y: sampleAt.y + (center.y - sampleAt.y) * 0.2,
+        };
+        color = sampleSource(source, sourceWidth, sourceHeight, artwork, sampleAt);
+        guard += 1;
+      }
+      const to = (row * destWidth + column) * 4;
+      dest[to] = color.r;
+      dest[to + 1] = color.g;
+      dest[to + 2] = color.b;
+      dest[to + 3] = 255;
+    }
+  }
+  context.putImageData(image, 0, 0);
+  return {
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: bounds.height,
+    png: canvas.toDataURL("image/png"),
+  };
+}
+
+function sampleSource(
+  source: ImageData,
+  sourceWidth: number,
+  sourceHeight: number,
+  artwork: MmRect,
+  point: Point,
+): { r: number; g: number; b: number; a: number } {
+  const sx = Math.min(
+    sourceWidth - 1,
+    Math.max(0, Math.round(((point.x - artwork.x) / artwork.width) * (sourceWidth - 1))),
+  );
+  const sy = Math.min(
+    sourceHeight - 1,
+    Math.max(0, Math.round(((point.y - artwork.y) / artwork.height) * (sourceHeight - 1))),
+  );
+  const index = (sy * sourceWidth + sx) * 4;
+  return {
+    r: source.data[index],
+    g: source.data[index + 1],
+    b: source.data[index + 2],
+    a: source.data[index + 3],
+  };
 }
 
 async function renderFlag(

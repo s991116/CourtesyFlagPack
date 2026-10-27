@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="flag-sig-u" viewBox="0 0 300 300">
+  <rect x="0" y="0" width="150" height="150" fill="#d50000"/>
+  <rect x="150" y="0" width="150" height="150" fill="#fff"/>
+  <rect x="0" y="150" width="150" height="150" fill="#fff"/>
+  <rect x="150" y="150" width="150" height="150" fill="#d50000"/>
+</svg>

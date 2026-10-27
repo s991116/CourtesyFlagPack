@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="flag-sig-y" viewBox="0 0 300 300">
+  <polygon points="0,0 60,0 0,60" fill="#ffd100"/>
+  <polygon points="60,0 120,0 0,120 0,60" fill="#d50000"/>
+  <polygon points="120,0 180,0 0,180 0,120" fill="#ffd100"/>
+  <polygon points="180,0 240,0 0,240 0,180" fill="#d50000"/>
+  <polygon points="240,0 300,0 0,300 0,240" fill="#ffd100"/>
+  <polygon points="300,0 300,60 60,300 0,300" fill="#d50000"/>
+  <polygon points="300,60 300,120 120,300 60,300" fill="#ffd100"/>
+  <polygon points="300,120 300,180 180,300 120,300" fill="#d50000"/>
+  <polygon points="300,180 300,240 240,300 180,300" fill="#ffd100"/>
+  <polygon points="300,240 300,300 240,300" fill="#d50000"/>
+</svg>

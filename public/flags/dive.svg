@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="flag-dive" viewBox="0 0 450 300">
+  <rect width="450" height="300" fill="#d50000"/>
+  <line x1="0" y1="0" x2="450" y2="300" stroke="#fff" stroke-width="60"/>
+</svg>

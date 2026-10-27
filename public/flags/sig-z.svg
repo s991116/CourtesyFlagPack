@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="flag-sig-z" viewBox="0 0 300 300">
+  <polygon points="0,0 300,0 150,150" fill="#ffd100"/>
+  <polygon points="0,0 0,300 150,150" fill="#000"/>
+  <polygon points="300,0 300,300 150,150" fill="#0033a0"/>
+  <polygon points="0,300 300,300 150,150" fill="#d50000"/>
+</svg>
