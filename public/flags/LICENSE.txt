@@ -38,6 +38,7 @@ Each of these files keeps the license named here.
 - pt-30.svg — Flag of Madeira. Drawn for this project.
 - gb-shet.svg — Flag of Shetland. Drawn for this project.
 - vg.svg — British Virgin Islands civil ensign. The flag-icons blue ensign with the field changed to red, for the courtesy flag.
+- us.svg — Flag of the United States. Public domain. The geometric Wikimedia flag, so the union keeps its official share of the 10:19 flag.
 - q.svg — Plain yellow quarantine flag (maritime signal flag Q). Drawn for this project.
 - dive.svg — Red diver-down flag with a white diagonal stripe. Drawn for this project.
 - distress.svg — Orange distress signal with a black square and circle. Drawn for this project.
