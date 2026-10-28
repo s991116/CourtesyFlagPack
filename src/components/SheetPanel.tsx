@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { printLayout } from "../config/print";
 import { flagById } from "../data/flags";
 import {
@@ -7,6 +7,12 @@ import {
   type FlagClothId,
 } from "../data/sheet";
 import { trackDownloadPdf } from "../lib/analytics";
+import {
+  formatFlagSelection,
+  parseFlagSelection,
+  selectionFileName,
+  type FlagSelectionFile,
+} from "../lib/flagSelectionFile";
 import { printAreaLabel } from "../lib/printArea";
 import { previewGridStyle, slotFlagStyle, type FlagFit } from "../lib/flagSize";
 import { buildSheetGeometry } from "../lib/sheetGeometry";
@@ -31,6 +37,7 @@ type SheetDownloadProps = {
   rows: number;
   clothId: FlagClothId;
   fit: FlagFit;
+  onLoad: (selection: FlagSelectionFile) => void;
 };
 
 export function SheetPanel({
@@ -164,9 +171,11 @@ export function SheetDownload({
   rows,
   clothId,
   fit,
+  onLoad,
 }: SheetDownloadProps) {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
 
   async function download() {
     const selected = selectedIds.flatMap((id) => {
@@ -186,16 +195,64 @@ export function SheetDownload({
     }
   }
 
+  function exportSelection() {
+    const text = formatFlagSelection({ clothId, fit, columns, flagIds: selectedIds });
+    const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = selectionFileName();
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importSelection(file: File | undefined) {
+    if (fileInput.current) fileInput.current.value = "";
+    if (!file) return;
+    try {
+      const parsed = parseFlagSelection(await file.text());
+      const unknown = parsed.unknown.join(", ");
+      if (parsed.flagIds.length === 0 && parsed.unknown.length > 0) {
+        setDownloadError(`Unknown flags: ${unknown}.`);
+        return;
+      }
+      onLoad(parsed);
+      setDownloadError(unknown ? `Unknown flags: ${unknown}.` : "");
+    } catch {
+      setDownloadError("The file could not be read.");
+    }
+  }
+
   return (
     <div className="sheet-footer">
-      <button
-        type="button"
-        className="download"
-        disabled={selectedIds.length === 0 || downloading}
-        onClick={() => void download()}
-      >
-        {downloading ? "Preparing PDF…" : "Download PDF"}
-      </button>
+      <div className="sheet-downloads">
+        <button
+          type="button"
+          className="download"
+          disabled={selectedIds.length === 0 || downloading}
+          onClick={() => void download()}
+        >
+          {downloading ? "Preparing PDF…" : "Download PDF"}
+        </button>
+        <button
+          type="button"
+          className="sheet-file"
+          disabled={selectedIds.length === 0}
+          onClick={exportSelection}
+        >
+          Export
+        </button>
+        <button type="button" className="sheet-file" onClick={() => fileInput.current?.click()}>
+          Import
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".txt,text/plain"
+          hidden
+          aria-label="Import flags"
+          onChange={(event) => void importSelection(event.target.files?.[0])}
+        />
+      </div>
       {downloadError ? <p className="download-error">{downloadError}</p> : null}
       <p className="sheet-note">
         The PDF is at print size. The country name is printed in the hem

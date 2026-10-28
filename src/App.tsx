@@ -4,6 +4,7 @@ import { SheetDownload, SheetPanel } from "./components/SheetPanel";
 import { flagById, flags } from "./data/flags";
 import { defaultFlagClothId, defaultFlagsPerRow, flagsPerRowOptions, type FlagClothId } from "./data/sheet";
 import { filterFlags } from "./lib/catalog";
+import type { FlagSelectionFile } from "./lib/flagSelectionFile";
 import { defaultFlagFit, type FlagFit } from "./lib/flagSize";
 import { removeSelection, toggleSelection } from "./lib/selection";
 import type { FlagKind, Region } from "./types/flag";
@@ -36,6 +37,13 @@ export function App() {
 
   function remove(id: string) {
     setSelectedIds((current) => removeSelection(current, id));
+  }
+
+  function loadSelection(selection: FlagSelectionFile) {
+    setClothId(selection.clothId);
+    setFit(selection.fit);
+    setColumns(selection.columns);
+    setSelectedIds(selection.flagIds);
   }
 
   return (
@@ -88,6 +96,7 @@ export function App() {
         rows={sheetRows}
         clothId={clothId}
         fit={fit}
+        onLoad={loadSelection}
       />
     </div>
   );
