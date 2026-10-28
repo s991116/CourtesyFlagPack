@@ -233,38 +233,29 @@ export function SheetDownload({
         >
           {downloading ? "Preparing PDF…" : "Download PDF"}
         </button>
+        <button type="button" className="sheet-file" onClick={() => fileInput.current?.click()}>
+          Import selection
+        </button>
         <button
           type="button"
           className="sheet-file"
           disabled={selectedIds.length === 0}
           onClick={exportSelection}
         >
-          Export
-        </button>
-        <button type="button" className="sheet-file" onClick={() => fileInput.current?.click()}>
-          Import
+          Export selection
         </button>
         <input
           ref={fileInput}
           type="file"
           accept=".txt,text/plain"
           hidden
-          aria-label="Import flags"
+          aria-label="Import selection"
           onChange={(event) => void importSelection(event.target.files?.[0])}
         />
       </div>
       {downloadError ? <p className="download-error">{downloadError}</p> : null}
       <p className="sheet-note">
-        The PDF is at print size. The country name is printed in the hem
-        {selectedIds[0] ? (
-          <>
-            , for example{" "}
-            <span className="hem-sample">
-              {flagById(selectedIds[0])?.hemLabel}
-            </span>
-          </>
-        ) : null}
-        .
+        The PDF is at print size. The country name is printed in the hem.
       </p>
     </div>
   );

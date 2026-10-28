@@ -235,7 +235,7 @@ describe("flag search", () => {
         expect(word.charAt(0)).toBe(word.charAt(0).toLocaleUpperCase("en"));
       }
     }
-    expect(flags.find((flag) => flag.id === "sig-z")?.hemLabel).toBe("Z Signal Flag");
+    expect(flags.find((flag) => flag.id === "sig-z")?.hemLabel).toBe("Signal Flag Z");
   });
 
   it("lists signal flags A to Z with their ratios and the same special name", () => {
@@ -247,7 +247,7 @@ describe("flag search", () => {
       const letter = letters[index];
       const swallowtail = letter === "A" || letter === "B";
       expect(flag).toMatchObject({
-        hemLabel: `${letter} Signal Flag`,
+        hemLabel: `Signal Flag ${letter}`,
         kind: "special",
         detail: "Signal Flag",
         ratio: swallowtail ? { height: 1, length: 1.5 } : { height: 1, length: 1 },
