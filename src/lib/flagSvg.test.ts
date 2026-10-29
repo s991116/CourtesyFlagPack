@@ -1,5 +1,10 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { stretchFlagArtwork, stripClipPaintOpacity } from "./flagSvg";
+import { inlineSvgUses, stretchFlagArtwork, stripClipPaintOpacity } from "./flagSvg";
+
+const flagsDir = join(dirname(fileURLToPath(import.meta.url)), "../../public/flags");
 
 const iceland = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480">
   <defs>
@@ -38,5 +43,76 @@ describe("flag svg for print", () => {
       <path fill="#fff" d="M205.7 0h68.6v480h-68.6z"/>
     </svg>`;
     expect(stripClipPaintOpacity(denmark)).toBe(denmark);
+  });
+});
+
+describe("flag references for print", () => {
+  it("places a reused shape with its shift after its rotation", () => {
+    const prepared = inlineSvgUses(`<svg xmlns="http://www.w3.org/2000/svg">
+      <path id="p" d="M0 0h1v1H0z"/>
+      <use xlink:href="#p" x="10" y="20" transform="rotate(45)" fill="#fff"/>
+    </svg>`);
+
+    expect(prepared).not.toContain("<use");
+    expect(prepared).toContain('transform="rotate(45) translate(10,20)" fill="#fff"');
+    expect(prepared.split('d="M0 0h1v1H0z"').length - 1).toBe(2);
+    expect(prepared.split('id="p"').length - 1).toBe(1);
+  });
+
+  it("copies a shape that is defined after the reference", () => {
+    const prepared = inlineSvgUses(`<svg xmlns="http://www.w3.org/2000/svg">
+      <use href="#p" y="5"/>
+      <path id="p" d="M0,0h1"/>
+    </svg>`);
+
+    expect(prepared).toContain('transform="translate(0,5)"');
+    expect(prepared).toContain('<path d="M0,0h1"/>');
+    expect(prepared).not.toContain("<use");
+  });
+
+  it("draws every United States star", () => {
+    const prepared = inlineSvgUses(readFileSync(join(flagsDir, "us.svg"), "utf8"));
+    const star =
+      'd="M247,90 317.534230,307.082039 132.873218,172.917961H361.126782L176.465770,307.082039z"';
+
+    expect(prepared).not.toMatch(/<use\b/);
+    expect(prepared.split(star).length - 1).toBe(50);
+    expect(prepared).toContain("translate(0,420)");
+    expect(prepared).toContain("translate(0,840)");
+    expect(prepared).toContain("translate(0,1260)");
+    expect(prepared).toContain("translate(0,1680)");
+    expect(prepared).toContain("translate(247,210)");
+  });
+
+  it("draws every point of the Saba star", () => {
+    const prepared = inlineSvgUses(readFileSync(join(flagsDir, "bq-sa.svg"), "utf8"));
+
+    expect(prepared).not.toMatch(/<use\b/);
+    expect(prepared.split('d="M0,-283V0H142z"').length - 1).toBe(10);
+    expect(prepared).toContain('transform="scale(-1,1)"');
+    expect(prepared).toContain('transform="rotate(72)"');
+    expect(prepared).toContain('transform="rotate(-72)"');
+    expect(prepared).toContain('transform="rotate(144)"');
+  });
+
+  it("leaves a flag without references unchanged", () => {
+    const denmark = readFileSync(join(flagsDir, "dk.svg"), "utf8");
+    expect(inlineSvgUses(denmark)).toBe(denmark);
+  });
+
+  it("expands every flag that reuses a shape", () => {
+    const files = readdirSync(flagsDir).filter((name) => name.endsWith(".svg"));
+    expect(files.length).toBeGreaterThan(50);
+    for (const name of files) {
+      let prepared = "";
+      try {
+        prepared = inlineSvgUses(readFileSync(join(flagsDir, name), "utf8"));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`${name}: ${message}`);
+      }
+      if (/<use\b/i.test(prepared)) throw new Error(`${name} still has a reference`);
+      if (!prepared.includes("<svg")) throw new Error(`${name} lost its root`);
+    }
   });
 });

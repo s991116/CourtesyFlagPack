@@ -2,7 +2,7 @@ import { jsPDF } from "jspdf";
 import { printLayout, type PrintLayout } from "../config/print";
 import type { Flag } from "../types/flag";
 import { renderMirroredHem, renderShapedHem } from "./flagHem";
-import { stretchFlagArtwork, stripClipPaintOpacity } from "./flagSvg";
+import { inlineSvgUses, stretchFlagArtwork, stripClipPaintOpacity } from "./flagSvg";
 import { colorFrame } from "./hemColor";
 import type { FlagCloth } from "../data/sheet";
 import type { FlagFit } from "./flagSize";
@@ -142,7 +142,7 @@ export async function embedFlagArtwork(
         "F",
       );
     }
-    const parsed = new DOMParser().parseFromString(printable, "image/svg+xml");
+    const parsed = new DOMParser().parseFromString(inlineSvgUses(printable), "image/svg+xml");
     const element = parsed.documentElement;
     await svg2pdf(element, doc, {
       x: placed.design.x,
