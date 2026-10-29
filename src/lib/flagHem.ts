@@ -20,7 +20,10 @@ export type HemPiece = {
   y: number;
   width: number;
   height: number;
-  png: string;
+  /** Opaque RGBA pixels, row by row. */
+  pixels: Uint8ClampedArray;
+  pixelWidth: number;
+  pixelHeight: number;
 };
 
 export type MirroredHem = {
@@ -129,13 +132,7 @@ function piece(
   sourceHeight: number,
   locate: (x: number, y: number) => { sx: number; sy: number },
 ): HemPiece {
-  const canvas = document.createElement("canvas");
-  canvas.width = destWidth;
-  canvas.height = destHeight;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("Could not draw the mirrored hem");
-  const image = context.createImageData(destWidth, destHeight);
-  const dest = image.data;
+  const dest = new Uint8ClampedArray(destWidth * destHeight * 4);
   for (let row = 0; row < destHeight; row += 1) {
     for (let column = 0; column < destWidth; column += 1) {
       const { sx, sy } = locate(column, row);
@@ -150,8 +147,15 @@ function piece(
       dest[to + 3] = 255;
     }
   }
-  context.putImageData(image, 0, 0);
-  return { x, y, width, height, png: canvas.toDataURL("image/png") };
+  return {
+    x,
+    y,
+    width,
+    height,
+    pixels: dest,
+    pixelWidth: destWidth,
+    pixelHeight: destHeight,
+  };
 }
 
 function sampleLabel(
@@ -238,13 +242,7 @@ export async function renderShapedHem(
   const sourceWidth = px(artwork.width);
   const sourceHeight = px(artwork.height);
   const source = await renderFlag(svgText, sourceWidth, sourceHeight);
-  const canvas = document.createElement("canvas");
-  canvas.width = destWidth;
-  canvas.height = destHeight;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("Could not draw the mirrored hem");
-  const image = context.createImageData(destWidth, destHeight);
-  const dest = image.data;
+  const dest = new Uint8ClampedArray(destWidth * destHeight * 4);
   dest.fill(255);
   const center = {
     x: artwork.x + artwork.width / 2,
@@ -275,13 +273,14 @@ export async function renderShapedHem(
       dest[to + 3] = 255;
     }
   }
-  context.putImageData(image, 0, 0);
   return {
     x: bounds.x,
     y: bounds.y,
     width: bounds.width,
     height: bounds.height,
-    png: canvas.toDataURL("image/png"),
+    pixels: dest,
+    pixelWidth: destWidth,
+    pixelHeight: destHeight,
   };
 }
 

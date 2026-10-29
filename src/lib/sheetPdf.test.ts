@@ -1,4 +1,4 @@
-import { deflateSync, inflateSync } from "node:zlib";
+import { inflateSync } from "node:zlib";
 import { jsPDF } from "jspdf";
 import { describe, expect, it } from "vitest";
 import { printLayout } from "../config/print";
@@ -180,25 +180,26 @@ describe("sheet pdf page", () => {
 });
 
 describe("hem image compression", () => {
-  it("stores the same pixels in a lighter Flate stream", () => {
+  it("stores the same pixels in a plain Flate stream", async () => {
     const width = 900;
     const height = 80;
     const pixels = stripePixels(width, height);
+    const rgba = rgbaPixels(pixels);
     const doc = new jsPDF({ unit: "mm", format: [200, 100] });
-    addHemImage(doc, pngDataUrl(width, height, pixels), 0, 0, 90, 12);
+    await addHemImage(doc, rgba, width, height, 0, 0, 90, 12);
     const raw = new jsPDF({ unit: "mm", format: [200, 100] });
-    raw.addImage(pngDataUrl(width, height, pixels), "PNG", 0, 0, 90, 12);
+    raw.addImage({ data: rgba, width, height }, "RGBA", 0, 0, 90, 12);
 
     const output = doc.output();
     const image = output.slice(output.indexOf("/Subtype /Image"));
     expect(image).toContain("/Filter /FlateDecode");
-    expect(image).toContain("/Predictor 11");
+    expect(image).not.toContain("/Predictor");
     expect(image).toContain("/ColorSpace /DeviceRGB");
     expect(image).not.toContain("/SMask");
     expect(doc.output("arraybuffer").byteLength).toBeLessThan(
       raw.output("arraybuffer").byteLength / 5,
     );
-    expect(decodeHemImage(output, width, height)).toEqual(pixels);
+    expect(decodeHemImage(output)).toEqual(pixels);
   });
 });
 
@@ -218,71 +219,20 @@ function stripePixels(width: number, height: number): Uint8Array {
   return pixels;
 }
 
-function pngDataUrl(width: number, height: number, rgb: Uint8Array): string {
-  const raw = Buffer.alloc((width * 4 + 1) * height);
-  for (let y = 0; y < height; y += 1) {
-    const row = y * (width * 4 + 1);
-    for (let x = 0; x < width; x += 1) {
-      const from = (y * width + x) * 3;
-      const to = row + 1 + x * 4;
-      raw[to] = rgb[from];
-      raw[to + 1] = rgb[from + 1];
-      raw[to + 2] = rgb[from + 2];
-      raw[to + 3] = 255;
-    }
+function rgbaPixels(rgb: Uint8Array): Uint8Array {
+  const pixels = new Uint8Array((rgb.length / 3) * 4);
+  for (let i = 0, j = 0; i < rgb.length; i += 3, j += 4) {
+    pixels[j] = rgb[i];
+    pixels[j + 1] = rgb[i + 1];
+    pixels[j + 2] = rgb[i + 2];
+    pixels[j + 3] = 255;
   }
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(width, 0);
-  ihdr.writeUInt32BE(height, 4);
-  ihdr[8] = 8;
-  ihdr[9] = 6;
-  const png = Buffer.concat([
-    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-    pngChunk("IHDR", ihdr),
-    pngChunk("IDAT", deflateSync(raw)),
-    pngChunk("IEND", Buffer.alloc(0)),
-  ]);
-  return `data:image/png;base64,${png.toString("base64")}`;
+  return pixels;
 }
 
-function pngChunk(type: string, data: Buffer): Buffer {
-  const body = Buffer.concat([Buffer.from(type), data]);
-  const crc = Buffer.alloc(4);
-  crc.writeUInt32BE(pngCrc(body));
-  const length = Buffer.alloc(4);
-  length.writeUInt32BE(data.length);
-  return Buffer.concat([length, body, crc]);
-}
-
-function pngCrc(buf: Buffer): number {
-  let crc = ~0;
-  for (let i = 0; i < buf.length; i += 1) {
-    crc ^= buf[i];
-    for (let bit = 0; bit < 8; bit += 1) {
-      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
-    }
-  }
-  return ~crc >>> 0;
-}
-
-function decodeHemImage(pdf: string, width: number, height: number): Uint8Array {
+function decodeHemImage(pdf: string): Uint8Array {
   const image = pdf.slice(pdf.indexOf("/Subtype /Image"));
   const start = image.indexOf("stream\n") + "stream\n".length;
   const end = image.indexOf("\nendstream");
-  const packed = inflateSync(Buffer.from(image.slice(start, end), "latin1"));
-  const colors = 3;
-  const stride = width * colors;
-  const pixels = new Uint8Array(height * stride);
-  for (let y = 0; y < height; y += 1) {
-    const filter = packed[y * (stride + 1)];
-    if (filter !== 1) throw new Error(`Expected the Sub predictor, got ${filter}`);
-    const row = packed.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1));
-    const decoded = new Uint8Array(stride);
-    for (let i = 0; i < stride; i += 1) {
-      const left = i >= colors ? decoded[i - colors] : 0;
-      decoded[i] = (row[i] + left) & 255;
-    }
-    pixels.set(decoded, y * stride);
-  }
-  return pixels;
+  return new Uint8Array(inflateSync(Buffer.from(image.slice(start, end), "latin1")));
 }

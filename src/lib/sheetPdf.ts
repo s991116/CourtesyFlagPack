@@ -10,21 +10,65 @@ import { fittedLabelFontMm, labelBaselineFromCutMm, labelOutlineEm } from "./lab
 import { sheetFileName } from "./printArea";
 import { buildSheetGeometry, type SheetGeometry } from "./sheetGeometry";
 
+type PackedImage = {
+  data: string;
+  alpha?: string;
+  filter?: string;
+};
+
 /**
- * Lossless Flate packing with the Sub predictor.
- * Paeth ("SLOW") is also lossless, but Acrobat undoes it pixel by pixel and
- * the hem images are large, so the file is slow to open. Sub stays far
- * smaller than the raw pixels and is a single addition per byte.
+ * Lossless Flate of the raw pixels, with no PNG predictor.
+ * A predictor keeps the file small, but Acrobat then rebuilds every hem pixel
+ * from its neighbours, and a 25-flag sheet is about 95 MB of pixels. Plain
+ * Flate stays small on flat colour and Acrobat inflates it directly.
  */
-export function addHemImage(
+export async function addHemImage(
   doc: jsPDF,
-  png: string,
+  pixels: Uint8Array | Uint8ClampedArray,
+  pixelWidth: number,
+  pixelHeight: number,
   x: number,
   y: number,
   width: number,
   height: number,
 ) {
-  doc.addImage(png, "PNG", x, y, width, height, undefined, "FAST");
+  const rgba = pixels instanceof Uint8ClampedArray ? pixels : new Uint8ClampedArray(pixels);
+  doc.addImage({ data: rgba, width: pixelWidth, height: pixelHeight }, "RGBA", x, y, width, height);
+  for (const image of Object.values(hemImages(doc))) {
+    if (image.filter === "FlateDecode") continue;
+    const packed = await deflateBytes(binaryToBytes(image.data));
+    image.data = bytesToBinary(packed);
+    image.filter = "FlateDecode";
+    delete image.alpha;
+  }
+}
+
+async function deflateBytes(bytes: Uint8Array): Promise<Uint8Array> {
+  const body = new Uint8Array(bytes);
+  const stream = new Blob([body]).stream().pipeThrough(new CompressionStream("deflate"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+function binaryToBytes(value: string): Uint8Array {
+  const bytes = new Uint8Array(value.length);
+  for (let i = 0; i < value.length; i += 1) bytes[i] = value.charCodeAt(i) & 255;
+  return bytes;
+}
+
+function bytesToBinary(bytes: Uint8Array): string {
+  const parts: string[] = [];
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    parts.push(String.fromCharCode(...bytes.subarray(i, i + chunk)));
+  }
+  return parts.join("");
+}
+
+function hemImages(doc: jsPDF): Record<string, PackedImage> {
+  const collections = (doc as unknown as {
+    internal: { collections: Record<string, Record<string, PackedImage>> };
+  }).internal.collections;
+  return collections.addImage_images;
 }
 
 export function createSheetDocument(
@@ -120,7 +164,16 @@ export async function embedFlagArtwork(
         placed.outline,
         placed.cutOutline,
       );
-      addHemImage(doc, hem.png, hem.x, hem.y, hem.width, hem.height);
+      await addHemImage(
+        doc,
+        hem.pixels,
+        hem.pixelWidth,
+        hem.pixelHeight,
+        hem.x,
+        hem.y,
+        hem.width,
+        hem.height,
+      );
     } else {
       const hem = await renderMirroredHem(
         printable,
@@ -130,7 +183,16 @@ export async function embedFlagArtwork(
         placed.design,
       );
       for (const part of hem.pieces) {
-        addHemImage(doc, part.png, part.x, part.y, part.width, part.height);
+        await addHemImage(
+          doc,
+          part.pixels,
+          part.pixelWidth,
+          part.pixelHeight,
+          part.x,
+          part.y,
+          part.width,
+          part.height,
+        );
       }
     }
     if (
