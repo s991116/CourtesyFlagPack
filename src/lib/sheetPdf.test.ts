@@ -180,7 +180,7 @@ describe("sheet pdf page", () => {
 });
 
 describe("hem image compression", () => {
-  it("stores the same pixels in a much smaller Flate stream", () => {
+  it("stores the same pixels in a lighter Flate stream", () => {
     const width = 900;
     const height = 80;
     const pixels = stripePixels(width, height);
@@ -192,6 +192,7 @@ describe("hem image compression", () => {
     const output = doc.output();
     const image = output.slice(output.indexOf("/Subtype /Image"));
     expect(image).toContain("/Filter /FlateDecode");
+    expect(image).toContain("/Predictor 11");
     expect(image).toContain("/ColorSpace /DeviceRGB");
     expect(image).not.toContain("/SMask");
     expect(doc.output("arraybuffer").byteLength).toBeLessThan(
@@ -272,28 +273,16 @@ function decodeHemImage(pdf: string, width: number, height: number): Uint8Array 
   const colors = 3;
   const stride = width * colors;
   const pixels = new Uint8Array(height * stride);
-  let previous = new Uint8Array(stride);
   for (let y = 0; y < height; y += 1) {
+    const filter = packed[y * (stride + 1)];
+    if (filter !== 1) throw new Error(`Expected the Sub predictor, got ${filter}`);
     const row = packed.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1));
     const decoded = new Uint8Array(stride);
     for (let i = 0; i < stride; i += 1) {
       const left = i >= colors ? decoded[i - colors] : 0;
-      const up = previous[i];
-      const upLeft = i >= colors ? previous[i - colors] : 0;
-      decoded[i] = (row[i] + paeth(left, up, upLeft)) & 255;
+      decoded[i] = (row[i] + left) & 255;
     }
     pixels.set(decoded, y * stride);
-    previous = decoded;
   }
   return pixels;
-}
-
-function paeth(left: number, up: number, upLeft: number): number {
-  const estimate = left + up - upLeft;
-  const towardLeft = Math.abs(estimate - left);
-  const towardUp = Math.abs(estimate - up);
-  const towardUpLeft = Math.abs(estimate - upLeft);
-  if (towardLeft <= towardUp && towardLeft <= towardUpLeft) return left;
-  if (towardUp <= towardUpLeft) return up;
-  return upLeft;
 }

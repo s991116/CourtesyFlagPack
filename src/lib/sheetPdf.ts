@@ -10,7 +10,12 @@ import { fittedLabelFontMm, labelBaselineFromCutMm, labelOutlineEm } from "./lab
 import { sheetFileName } from "./printArea";
 import { buildSheetGeometry, type SheetGeometry } from "./sheetGeometry";
 
-/** Lossless Flate packing. jsPDF otherwise stores the hem pixels uncompressed. */
+/**
+ * Lossless Flate packing with the Sub predictor.
+ * Paeth ("SLOW") is also lossless, but Acrobat undoes it pixel by pixel and
+ * the hem images are large, so the file is slow to open. Sub stays far
+ * smaller than the raw pixels and is a single addition per byte.
+ */
 export function addHemImage(
   doc: jsPDF,
   png: string,
@@ -19,7 +24,7 @@ export function addHemImage(
   width: number,
   height: number,
 ) {
-  doc.addImage(png, "PNG", x, y, width, height, undefined, "SLOW");
+  doc.addImage(png, "PNG", x, y, width, height, undefined, "FAST");
 }
 
 export function createSheetDocument(
