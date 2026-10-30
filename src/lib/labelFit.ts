@@ -1,11 +1,11 @@
 import { printLayout } from "../config/print";
 
 /**
- * Helvetica extents, in em, from the Adobe font metrics.
- * `d` reaches 0.729 above the baseline. `g` reaches 0.217 below it.
+ * Source Sans Pro ink, in em.
+ * `d` reaches 0.712 above the baseline. `g` reaches 0.224 below it.
  */
-export const helveticaAscentEm = 0.729;
-export const helveticaDescentEm = 0.217;
+export const labelAscentEm = 0.712;
+export const labelDescentEm = 0.224;
 
 /**
  * White stroke drawn under the black letters, in em.
@@ -28,7 +28,7 @@ export function fittedLabelFontMm(
   if (hemWidthMm <= 0 || maxLengthMm <= 0 || textWidthPerMm <= 0 || coverage <= 0) {
     return 0;
   }
-  const inkPerEm = helveticaAscentEm + helveticaDescentEm + labelOutlineEm;
+  const inkPerEm = labelAscentEm + labelDescentEm + labelOutlineEm;
   const inkBudget = Math.min(hemWidthMm, hemWidthMm * coverage);
   const byInk = inkBudget / inkPerEm;
   const byLength = maxLengthMm / (textWidthPerMm + labelOutlineEm);
@@ -37,8 +37,8 @@ export function fittedLabelFontMm(
 
 /** Distance from the cut edge to the baseline, so g stays inside the fold. */
 export function labelBaselineFromCutMm(hemMm: number, fontMm: number): number {
-  const ascentMm = fontMm * helveticaAscentEm;
-  const descentMm = fontMm * helveticaDescentEm;
+  const ascentMm = fontMm * labelAscentEm;
+  const descentMm = fontMm * labelDescentEm;
   const slack = Math.max(0, hemMm - ascentMm - descentMm);
   return slack / 2 + ascentMm;
 }

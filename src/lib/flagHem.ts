@@ -335,3 +335,106 @@ async function renderFlag(
     URL.revokeObjectURL(url);
   }
 }
+
+/**
+ * One opaque picture of the cut piece: the flag, and the hem around it.
+ * Used when the flag cannot stay as CMYK vectors.
+ */
+export async function renderPrintImage(
+  svgText: string,
+  artwork: MmRect,
+  frame: ColorFrame,
+  design: MmRect,
+  outline?: readonly Point[],
+  cutOutline?: readonly Point[],
+): Promise<HemPiece> {
+  if (outline && cutOutline) {
+    const hem = await renderShapedHem(svgText, artwork, outline, cutOutline);
+    const pixels = new Uint8ClampedArray(hem.pixels);
+    await paintDesign(pixels, hem.pixelWidth, hem.pixelHeight, hem.x, hem.y, svgText, design, outline);
+    return { ...hem, pixels };
+  }
+
+  const widthMm = frame.right - frame.left;
+  const heightMm = frame.bottom - frame.top;
+  const pixelWidth = px(widthMm);
+  const pixelHeight = px(heightMm);
+  const pixels = new Uint8ClampedArray(pixelWidth * pixelHeight * 4);
+  pixels.fill(255);
+  const hem = await renderMirroredHem(
+    svgText,
+    artwork,
+    frame,
+    { x: artwork.x, y: artwork.y },
+    design,
+  );
+  for (const part of hem.pieces) blit(pixels, pixelWidth, pixelHeight, part, frame.left, frame.top);
+  await paintDesign(pixels, pixelWidth, pixelHeight, frame.left, frame.top, svgText, design);
+  return {
+    x: frame.left,
+    y: frame.top,
+    width: widthMm,
+    height: heightMm,
+    pixels,
+    pixelWidth,
+    pixelHeight,
+  };
+}
+
+function blit(
+  dest: Uint8ClampedArray,
+  destWidth: number,
+  destHeight: number,
+  part: HemPiece,
+  originX: number,
+  originY: number,
+) {
+  const ox = Math.round((part.x - originX) * pxPerMm);
+  const oy = Math.round((part.y - originY) * pxPerMm);
+  for (let row = 0; row < part.pixelHeight; row += 1) {
+    const dy = oy + row;
+    if (dy < 0 || dy >= destHeight) continue;
+    for (let col = 0; col < part.pixelWidth; col += 1) {
+      const dx = ox + col;
+      if (dx < 0 || dx >= destWidth) continue;
+      const from = (row * part.pixelWidth + col) * 4;
+      const to = (dy * destWidth + dx) * 4;
+      dest[to] = part.pixels[from];
+      dest[to + 1] = part.pixels[from + 1];
+      dest[to + 2] = part.pixels[from + 2];
+      dest[to + 3] = 255;
+    }
+  }
+}
+
+async function paintDesign(
+  dest: Uint8ClampedArray,
+  destWidth: number,
+  destHeight: number,
+  originX: number,
+  originY: number,
+  svgText: string,
+  design: MmRect,
+  outline?: readonly Point[],
+) {
+  const flagWidth = Math.max(1, Math.round(design.width * pxPerMm));
+  const flagHeight = Math.max(1, Math.round(design.height * pxPerMm));
+  const flag = await renderFlag(svgText, flagWidth, flagHeight);
+  for (let row = 0; row < flagHeight; row += 1) {
+    for (let col = 0; col < flagWidth; col += 1) {
+      const mm = {
+        x: design.x + ((col + 0.5) / flagWidth) * design.width,
+        y: design.y + ((row + 0.5) / flagHeight) * design.height,
+      };
+      if (outline && !pointInPolygon(mm, outline)) continue;
+      const dx = Math.min(destWidth - 1, Math.max(0, Math.round((mm.x - originX) * pxPerMm)));
+      const dy = Math.min(destHeight - 1, Math.max(0, Math.round((mm.y - originY) * pxPerMm)));
+      const from = (row * flagWidth + col) * 4;
+      const to = (dy * destWidth + dx) * 4;
+      dest[to] = flag.data[from];
+      dest[to + 1] = flag.data[from + 1];
+      dest[to + 2] = flag.data[from + 2];
+      dest[to + 3] = 255;
+    }
+  }
+}

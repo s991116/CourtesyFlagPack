@@ -2,7 +2,14 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { inlineSvgUses, stretchFlagArtwork, stripClipPaintOpacity } from "./flagSvg";
+import {
+  clipAndFlipSvg,
+  flagNeedsRaster,
+  inlineSvgUses,
+  stretchFlagArtwork,
+  stripClipPaintOpacity,
+  svgViewBox,
+} from "./flagSvg";
 
 const flagsDir = join(dirname(fileURLToPath(import.meta.url)), "../../public/flags");
 
@@ -35,6 +42,29 @@ describe("flag svg for print", () => {
     );
     expect(prepared).toContain('preserveAspectRatio="none"');
     expect(prepared).not.toContain("xMidYMid");
+  });
+
+  it("keeps a flat flag as vectors and rasters paint that is not flat", () => {
+    expect(flagNeedsRaster(iceland)).toBe(false);
+    expect(flagNeedsRaster(`<svg xmlns="http://www.w3.org/2000/svg"><path fill="#c8102e" d="M0 0h1v1H0z"/></svg>`)).toBe(false);
+    expect(flagNeedsRaster(`<svg xmlns="http://www.w3.org/2000/svg"><linearGradient id="a"/><path fill="url(#a)" d="M0 0h1v1H0z"/></svg>`)).toBe(true);
+    expect(flagNeedsRaster(`<svg xmlns="http://www.w3.org/2000/svg"><path stroke-opacity=".5" d="M0 0h1v1H0z"/></svg>`)).toBe(true);
+    expect(flagNeedsRaster(`<svg xmlns="http://www.w3.org/2000/svg"><image href="data:image/png;base64,xx"/></svg>`)).toBe(true);
+  });
+
+  it("clips the mirrored picture to the hem slice", () => {
+    const view = svgViewBox(iceland);
+    expect(view).toEqual({ x: 0, y: 0, width: 640, height: 480 });
+    const clipped = clipAndFlipSvg(
+      iceland,
+      { x: 0, y: 400, width: 640, height: 80 },
+      "translate(0 480) scale(1 -1)",
+    );
+    expect(clipped).toContain('id="print-hem"');
+    expect(clipped).toContain('clip-path="url(#print-hem)"');
+    expect(clipped).toContain('transform="translate(0 480) scale(1 -1)"');
+    expect(clipped).toContain('fill="#003897"');
+    expect(clipped.endsWith("</g></g></svg>")).toBe(true);
   });
 
   it("leaves a flag without clip opacity unchanged", () => {

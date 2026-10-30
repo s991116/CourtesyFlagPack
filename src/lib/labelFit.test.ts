@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   fittedLabelFontMm,
-  helveticaAscentEm,
-  helveticaDescentEm,
+  labelAscentEm,
+  labelDescentEm,
   labelBaselineFromCutMm,
   labelOutlineEm,
 } from "./labelFit";
@@ -11,8 +11,8 @@ function outlineClearance(hem: number, font: number) {
   const baseline = labelBaselineFromCutMm(hem, font);
   const halo = (font * labelOutlineEm) / 2;
   return {
-    clearOfCut: baseline - font * helveticaAscentEm - halo,
-    clearOfFold: hem - (baseline + font * helveticaDescentEm + halo),
+    clearOfCut: baseline - font * labelAscentEm - halo,
+    clearOfFold: hem - (baseline + font * labelDescentEm + halo),
   };
 }
 
@@ -34,7 +34,7 @@ describe("label size", () => {
   it("shrinks the letters when a descender would leave the fold", () => {
     const hem = 20;
     const font = fittedLabelFontMm(hem, 10_000, 0.2, 2);
-    expect(font * (helveticaAscentEm + helveticaDescentEm + labelOutlineEm)).toBeCloseTo(hem);
+    expect(font * (labelAscentEm + labelDescentEm + labelOutlineEm)).toBeCloseTo(hem);
     expect(font).toBeLessThan(hem * 2);
   });
 

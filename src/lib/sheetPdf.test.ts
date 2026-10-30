@@ -1,16 +1,16 @@
-import { inflateSync } from "node:zlib";
 import { jsPDF } from "jspdf";
 import { describe, expect, it } from "vitest";
 import { printLayout } from "../config/print";
 import type { Flag } from "../types/flag";
 import {
   fittedLabelFontMm,
-  helveticaAscentEm,
-  helveticaDescentEm,
+  labelAscentEm,
+  labelDescentEm,
   labelBaselineFromCutMm,
   labelOutlineEm,
 } from "./labelFit";
-import { addHemImage, createSheetDocument } from "./sheetPdf";
+import { labelFontFamily } from "./labelFont";
+import { addCmykImage, createSheetDocument } from "./sheetPdf";
 import { buildSheetGeometry } from "./sheetGeometry";
 
 function textAnchor(
@@ -62,12 +62,16 @@ describe("sheet pdf page", () => {
 
     expect(doc.internal.pageSize.getWidth()).toBeCloseTo(geometry.pageWidthMm);
     expect(doc.internal.pageSize.getHeight()).toBeCloseTo(geometry.pageHeightMm);
-    expect(doc.output()).toContain("Denmark");
+    const output = doc.output();
+    expect(output).toContain("Denmark");
+    expect(output).toContain("/FontFile2");
+    expect(output).not.toContain("/BaseFont /Helvetica");
+    expect(output).not.toContain("/Subtype /Type1");
     const placed = geometry.flags[0];
     const pointsPerMm = 72 / 25.4;
     expect(doc.getFontSize() / pointsPerMm).toBeCloseTo(
       (printLayout.hemMm * printLayout.labelCoverage) /
-        (helveticaAscentEm + helveticaDescentEm + labelOutlineEm),
+        (labelAscentEm + labelDescentEm + labelOutlineEm),
       1,
     );
     expect(doc.getTextWidth("Denmark")).toBeLessThanOrEqual(placed.cut.height);
@@ -88,7 +92,7 @@ describe("sheet pdf page", () => {
     const pointsPerMm = 72 / 25.4;
 
     for (const placed of geometry.flags) {
-      doc.setFont("helvetica", "normal");
+      doc.setFont(labelFontFamily, "normal");
       doc.setFontSize(pointsPerMm);
       const fontMm = fittedLabelFontMm(
         printLayout.hemMm,
@@ -98,7 +102,7 @@ describe("sheet pdf page", () => {
       doc.setFontSize(fontMm * pointsPerMm);
 
       expect(
-        fontMm * (helveticaAscentEm + helveticaDescentEm + labelOutlineEm),
+        fontMm * (labelAscentEm + labelDescentEm + labelOutlineEm),
       ).toBeLessThanOrEqual(printLayout.hemMm * printLayout.labelCoverage + 1e-9);
       expect(doc.getTextWidth(placed.label.text) + fontMm * labelOutlineEm).toBeLessThanOrEqual(
         placed.cut.height + 1e-9,
@@ -123,7 +127,7 @@ describe("sheet pdf page", () => {
     const placed = geometry.flags[1];
     const finland = geometry.flags[0];
     const pointsPerMm = 72 / 25.4;
-    doc.setFont("helvetica", "normal");
+    doc.setFont(labelFontFamily, "normal");
     doc.setFontSize(pointsPerMm);
     const fontMm = fittedLabelFontMm(
       printLayout.hemMm,
@@ -140,12 +144,12 @@ describe("sheet pdf page", () => {
     );
     const halo = (fontMm * labelOutlineEm) / 2;
     const clearance = (printLayout.hemMm * (1 - printLayout.labelCoverage)) / 2;
-    expect(anchor.xMm - fontMm * helveticaAscentEm - halo - placed.cut.x).toBeCloseTo(
+    expect(anchor.xMm - fontMm * labelAscentEm - halo - placed.cut.x).toBeCloseTo(
       clearance,
       1,
     );
     expect(
-      placed.artwork.x - (anchor.xMm + fontMm * helveticaDescentEm + halo),
+      placed.artwork.x - (anchor.xMm + fontMm * labelDescentEm + halo),
     ).toBeCloseTo(clearance, 1);
     expect(anchor.xMm).toBeGreaterThan(finland.cut.x + finland.cut.width);
     expect(anchor.yFromTop - textWidthMm / 2).toBeCloseTo(placed.label.y, 1);
@@ -157,9 +161,9 @@ describe("sheet pdf page", () => {
     const beforeText = output.slice(Math.max(0, shownAt - 350), shownAt);
     expect(blocks).toHaveLength(2);
     expect(blocks[0]).toMatch(/\n1 Tr\n/);
-    expect(blocks[1]).toMatch(/\n0\.? g\n/);
+    expect(blocks[1]).toMatch(/0\. 0\. 0\. 1\. k\n/);
     expect(blocks[1]).toMatch(/\n0 Tr\n/);
-    expect(beforeText).toMatch(/1\. G\n/);
+    expect(beforeText).toMatch(/0\. 0\. 0\. 0\. K\n/);
     const widths = [...beforeText.matchAll(/([\d.]+) w/g)].map((match) => Number(match[1]));
     expect(widths.at(-1)! / pointsPerMm).toBeCloseTo(fontMm * labelOutlineEm, 2);
   });
@@ -179,60 +183,37 @@ describe("sheet pdf page", () => {
   });
 });
 
-describe("hem image compression", () => {
-  it("stores the same pixels in a plain Flate stream", async () => {
-    const width = 900;
-    const height = 80;
-    const pixels = stripePixels(width, height);
-    const rgba = rgbaPixels(pixels);
+describe("print image", () => {
+  it("stores the flag as a four-component JPEG in DeviceCMYK", () => {
+    const width = 8;
+    const height = 8;
+    const rgba = new Uint8Array(width * height * 4);
+    for (let i = 0; i < rgba.length; i += 4) {
+      rgba[i] = 198;
+      rgba[i + 1] = 12;
+      rgba[i + 2] = 48;
+      rgba[i + 3] = 255;
+    }
     const doc = new jsPDF({ unit: "mm", format: [200, 100] });
-    await addHemImage(doc, rgba, width, height, 0, 0, 90, 12);
-    const raw = new jsPDF({ unit: "mm", format: [200, 100] });
-    raw.addImage({ data: rgba, width, height }, "RGBA", 0, 0, 90, 12);
+    addCmykImage(doc, rgba, width, height, 0, 0, 90, 12);
 
     const output = doc.output();
     const image = output.slice(output.indexOf("/Subtype /Image"));
-    expect(image).toContain("/Filter /FlateDecode");
-    expect(image).not.toContain("/Predictor");
-    expect(image).toContain("/ColorSpace /DeviceRGB");
+    expect(image).toContain("/Filter /DCTDecode");
+    expect(image).toContain("/ColorSpace /DeviceCMYK");
+    expect(image).toContain("/Decode [1 0 1 0 1 0 1 0]");
+    expect(image).not.toContain("/DeviceRGB");
     expect(image).not.toContain("/SMask");
-    expect(doc.output("arraybuffer").byteLength).toBeLessThan(
-      raw.output("arraybuffer").byteLength / 5,
-    );
-    expect(decodeHemImage(output)).toEqual(pixels);
+    expect(output).not.toMatch(/[\d.]+ [\d.]+ [\d.]+ rg/);
+    const bytes = new Uint8Array(doc.output("arraybuffer"));
+    let sof = -1;
+    for (let i = 0; i < bytes.length - 9; i += 1) {
+      if (bytes[i] === 0xff && bytes[i + 1] === 0xc0) {
+        sof = i + 1;
+        break;
+      }
+    }
+    expect(sof).toBeGreaterThan(0);
+    expect(bytes[sof + 8]).toBe(4);
   });
 });
-
-function stripePixels(width: number, height: number): Uint8Array {
-  const pixels = new Uint8Array(width * height * 3);
-  for (let y = 0; y < height; y += 1) {
-    const band = Math.floor((y / height) * 3);
-    const color = [
-      [198, 12, 48],
-      [255, 255, 255],
-      [0, 82, 165],
-    ][band];
-    for (let x = 0; x < width; x += 1) {
-      pixels.set(color, (y * width + x) * 3);
-    }
-  }
-  return pixels;
-}
-
-function rgbaPixels(rgb: Uint8Array): Uint8Array {
-  const pixels = new Uint8Array((rgb.length / 3) * 4);
-  for (let i = 0, j = 0; i < rgb.length; i += 3, j += 4) {
-    pixels[j] = rgb[i];
-    pixels[j + 1] = rgb[i + 1];
-    pixels[j + 2] = rgb[i + 2];
-    pixels[j + 3] = 255;
-  }
-  return pixels;
-}
-
-function decodeHemImage(pdf: string): Uint8Array {
-  const image = pdf.slice(pdf.indexOf("/Subtype /Image"));
-  const start = image.indexOf("stream\n") + "stream\n".length;
-  const end = image.indexOf("\nendstream");
-  return new Uint8Array(inflateSync(Buffer.from(image.slice(start, end), "latin1")));
-}

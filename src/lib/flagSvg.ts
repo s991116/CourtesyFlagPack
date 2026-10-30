@@ -16,6 +16,50 @@ export function stretchFlagArtwork(svgText: string): string {
   });
 }
 
+export type SvgViewBox = { x: number; y: number; width: number; height: number };
+
+export function svgViewBox(svgText: string): SvgViewBox | null {
+  const match = /<svg\b[^>]*\bviewBox="([^"]+)"/i.exec(svgText);
+  if (!match) return null;
+  const [x, y, width, height] = match[1].trim().split(/[\s,]+/).map(Number);
+  if (![x, y, width, height].every(Number.isFinite) || width <= 0 || height <= 0) return null;
+  return { x, y, width, height };
+}
+
+/**
+ * Gradients, live opacity, masks and embedded images become RGB shadings
+ * or soft masks in svg2pdf. Those flags are painted as one CMYK JPEG instead.
+ * Opacity that only sits on a clip path is not part of the picture.
+ */
+export function flagNeedsRaster(svgText: string): boolean {
+  const withoutClip = svgText.replace(/<clipPath\b[^>]*>[\s\S]*?<\/clipPath>/gi, "");
+  return /<(?:linear|radial)Gradient\b|<mask\b|<filter\b|<image\b|<pattern\b/i.test(svgText)
+    || /(?:fill-opacity|stroke-opacity|stop-opacity|(?:^|[\s/"'])opacity)=/i.test(withoutClip);
+}
+
+/**
+ * Keep only `clip` of the picture, and flip it inside the viewBox first.
+ * The clip is in viewBox units. The flip runs inside that clip.
+ */
+export function clipAndFlipSvg(
+  svgText: string,
+  clip: SvgViewBox,
+  transform: string,
+): string {
+  const open = /<svg\b[^>]*>/i.exec(svgText);
+  const close = svgText.lastIndexOf("</svg>");
+  if (!open || close < 0) return svgText;
+  const start = open.index + open[0].length;
+  const rect = `x="${n(clip.x)}" y="${n(clip.y)}" width="${n(clip.width)}" height="${n(clip.height)}"`;
+  const flip = transform ? `<g transform="${transform}">` : "";
+  const flipClose = transform ? "</g>" : "";
+  return `${svgText.slice(0, start)}<defs><clipPath id="print-hem"><rect ${rect}/></clipPath></defs><g clip-path="url(#print-hem)">${flip}${svgText.slice(start, close)}${flipClose}</g></svg>`;
+}
+
+function n(value: number): string {
+  return String(Math.round(value * 1000) / 1000);
+}
+
 const maxUseExpansions = 5000;
 
 /**

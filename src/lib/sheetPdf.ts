@@ -1,28 +1,53 @@
 import { jsPDF } from "jspdf";
 import { printLayout, type PrintLayout } from "../config/print";
 import type { Flag } from "../types/flag";
-import { renderMirroredHem, renderShapedHem } from "./flagHem";
-import { inlineSvgUses, stretchFlagArtwork, stripClipPaintOpacity } from "./flagSvg";
-import { colorFrame } from "./hemColor";
+import { renderPrintImage } from "./flagHem";
+import {
+  clipAndFlipSvg,
+  flagNeedsRaster,
+  inlineSvgUses,
+  stretchFlagArtwork,
+  stripClipPaintOpacity,
+  svgViewBox,
+} from "./flagSvg";
+import { colorFrame, hemPieceRects } from "./hemColor";
+import {
+  bleedIntoArtwork,
+  hemFlipTransform,
+  intersectRects,
+  mirrorDesign,
+  viewBoxSlice,
+} from "./hemMirror";
+import { rgbaToCmykInk, useCmykColors } from "./cmyk";
+import { encodeCmykJpeg } from "./cmykJpeg";
 import type { FlagCloth } from "../data/sheet";
 import type { FlagFit } from "./flagSize";
 import { fittedLabelFontMm, labelBaselineFromCutMm, labelOutlineEm } from "./labelFit";
+import { labelFontFamily, registerLabelFont } from "./labelFont";
 import { sheetFileName } from "./printArea";
-import { buildSheetGeometry, type SheetGeometry } from "./sheetGeometry";
+import { buildSheetGeometry, type MmRect, type SheetGeometry } from "./sheetGeometry";
 
-type PackedImage = {
-  data: string;
-  alpha?: string;
-  filter?: string;
-};
+/** jsPDF starts every page in DeviceGray. The sheet is CMYK from the first operator. */
+function createPrintDocument(widthMm: number, heightMm: number): jsPDF {
+  const doc = new jsPDF({
+    unit: "mm",
+    format: [widthMm, heightMm],
+    orientation: widthMm > heightMm ? "landscape" : "portrait",
+    putOnlyUsedFonts: true,
+    strokeColor: "0. 0. 0. 1. K",
+    fillColor: "0. 0. 0. 0. k",
+    textColor: "0. 0. 0. 1. k",
+  } as unknown as ConstructorParameters<typeof jsPDF>[0]);
+  useCmykColors(doc);
+  registerLabelFont(doc);
+  return doc;
+}
 
 /**
- * Lossless Flate of the raw pixels, with no PNG predictor.
- * A predictor keeps the file small, but Acrobat then rebuilds every hem pixel
- * from its neighbours, and a 25-flag sheet is about 95 MB of pixels. Plain
- * Flate stays small on flat colour and Acrobat inflates it directly.
+ * A four-component JPEG in DeviceCMYK.
+ * The bytes are the ordinary DCT image a RIP already knows how to paint.
  */
-export async function addHemImage(
+export function addCmykImage(
   doc: jsPDF,
   pixels: Uint8Array | Uint8ClampedArray,
   pixelWidth: number,
@@ -32,55 +57,17 @@ export async function addHemImage(
   width: number,
   height: number,
 ) {
-  const rgba = pixels instanceof Uint8ClampedArray ? pixels : new Uint8ClampedArray(pixels);
-  doc.addImage({ data: rgba, width: pixelWidth, height: pixelHeight }, "RGBA", x, y, width, height);
-  for (const image of Object.values(hemImages(doc))) {
-    if (image.filter === "FlateDecode") continue;
-    const packed = await deflateBytes(binaryToBytes(image.data));
-    image.data = bytesToBinary(packed);
-    image.filter = "FlateDecode";
-    delete image.alpha;
-  }
-}
-
-async function deflateBytes(bytes: Uint8Array): Promise<Uint8Array> {
-  const body = new Uint8Array(bytes);
-  const stream = new Blob([body]).stream().pipeThrough(new CompressionStream("deflate"));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
-}
-
-function binaryToBytes(value: string): Uint8Array {
-  const bytes = new Uint8Array(value.length);
-  for (let i = 0; i < value.length; i += 1) bytes[i] = value.charCodeAt(i) & 255;
-  return bytes;
-}
-
-function bytesToBinary(bytes: Uint8Array): string {
-  const parts: string[] = [];
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    parts.push(String.fromCharCode(...bytes.subarray(i, i + chunk)));
-  }
-  return parts.join("");
-}
-
-function hemImages(doc: jsPDF): Record<string, PackedImage> {
-  const collections = (doc as unknown as {
-    internal: { collections: Record<string, Record<string, PackedImage>> };
-  }).internal.collections;
-  return collections.addImage_images;
+  const channels = pixels.length === pixelWidth * pixelHeight * 3 ? 3 : 4;
+  const ink = rgbaToCmykInk(pixels, channels);
+  const jpeg = encodeCmykJpeg(pixelWidth, pixelHeight, ink);
+  doc.addImage(jpeg, "JPEG", x, y, width, height);
 }
 
 export function createSheetDocument(
   geometry: SheetGeometry,
   layout: PrintLayout = printLayout,
 ): jsPDF {
-  const doc = new jsPDF({
-    unit: "mm",
-    format: [geometry.pageWidthMm, geometry.pageHeightMm],
-    orientation:
-      geometry.pageWidthMm > geometry.pageHeightMm ? "landscape" : "portrait",
-  });
+  const doc = createPrintDocument(geometry.pageWidthMm, geometry.pageHeightMm);
   drawSheetMarks(doc, geometry, layout);
   return doc;
 }
@@ -90,9 +77,9 @@ export function drawSheetMarks(
   geometry: SheetGeometry,
   layout: PrintLayout = printLayout,
 ) {
-  doc.setDrawColor(0);
-  doc.setTextColor(0);
-  doc.setFont("helvetica", "normal");
+  doc.setDrawColor(0, 0, 0, 1);
+  doc.setTextColor(0, 0, 0, 1);
+  doc.setFont(labelFontFamily, "normal");
 
   for (const kind of ["cut", "fold"] as const) {
     const stroke = kind === "cut" ? layout.cutStrokeMm : layout.foldStrokeMm;
@@ -118,8 +105,8 @@ export function drawSheetMarks(
       layout.labelCoverage,
     );
     doc.setFontSize(fontMm * pointsPerMm);
-    doc.setDrawColor(255);
-    doc.setTextColor(0);
+    doc.setDrawColor(0, 0, 0, 0);
+    doc.setTextColor(0, 0, 0, 1);
     doc.setLineWidth(fontMm * labelOutlineEm);
     doc.setLineJoin("round");
     doc.setLineCap("round");
@@ -152,72 +139,75 @@ export async function embedFlagArtwork(
   geometry: SheetGeometry,
   svgById: ReadonlyMap<string, string>,
 ): Promise<void> {
+  useCmykColors(doc);
   const { svg2pdf } = await import("svg2pdf.js");
   for (const placed of geometry.flags) {
     const svgText = svgById.get(placed.id);
     if (!svgText) continue;
     const printable = stretchFlagArtwork(stripClipPaintOpacity(svgText));
-    if (placed.outline && placed.cutOutline) {
-      const hem = await renderShapedHem(
-        printable,
-        placed.artwork,
-        placed.outline,
-        placed.cutOutline,
-      );
-      await addHemImage(
-        doc,
-        hem.pixels,
-        hem.pixelWidth,
-        hem.pixelHeight,
-        hem.x,
-        hem.y,
-        hem.width,
-        hem.height,
-      );
-    } else {
-      const hem = await renderMirroredHem(
+    const view = svgViewBox(printable);
+    const raster = Boolean(placed.outline) || !view || flagNeedsRaster(printable);
+    if (raster) {
+      const image = await renderPrintImage(
         printable,
         placed.artwork,
         colorFrame(placed),
-        placed.label,
         placed.design,
+        placed.outline,
+        placed.cutOutline,
       );
-      for (const part of hem.pieces) {
-        await addHemImage(
-          doc,
-          part.pixels,
-          part.pixelWidth,
-          part.pixelHeight,
-          part.x,
-          part.y,
-          part.width,
-          part.height,
-        );
-      }
+      addCmykImage(
+        doc,
+        image.pixels,
+        image.pixelWidth,
+        image.pixelHeight,
+        image.x,
+        image.y,
+        image.width,
+        image.height,
+      );
+      continue;
     }
+    const frame = colorFrame(placed);
+    doc.setFillColor(0, 0, 0, 0);
     if (
-      !placed.outline &&
-      (placed.design.width < placed.artwork.width - 0.05 ||
-        placed.design.height < placed.artwork.height - 0.05)
+      placed.design.width < placed.artwork.width - 0.05 ||
+      placed.design.height < placed.artwork.height - 0.05
     ) {
-      doc.setFillColor(255, 255, 255);
-      doc.rect(
-        placed.artwork.x,
-        placed.artwork.y,
-        placed.artwork.width,
-        placed.artwork.height,
-        "F",
-      );
+      doc.rect(placed.artwork.x, placed.artwork.y, placed.artwork.width, placed.artwork.height, "F");
     }
-    const parsed = new DOMParser().parseFromString(inlineSvgUses(printable), "image/svg+xml");
-    const element = parsed.documentElement;
-    await svg2pdf(element, doc, {
-      x: placed.design.x,
-      y: placed.design.y,
-      width: placed.design.width,
-      height: placed.design.height,
-    });
+    const inlined = inlineSvgUses(printable);
+    for (const piece of hemPieceRects(placed.artwork, frame)) {
+      doc.setFillColor(0, 0, 0, 0);
+      doc.rect(piece.x, piece.y, piece.width, piece.height, "F");
+      const placedDesign = mirrorDesign(placed.design, placed.artwork, piece.side);
+      const overlap = intersectRects(piece, placedDesign);
+      if (!overlap) continue;
+      const slice = viewBoxSlice(view, placedDesign, bleedIntoArtwork(overlap, placed.artwork));
+      const flipped = clipAndFlipSvg(inlined, slice, hemFlipTransform(view, piece.side));
+      await drawSvg(doc, svg2pdf, flipped, placedDesign);
+    }
+    await drawSvg(doc, svg2pdf, inlined, placed.design);
   }
+}
+
+async function drawSvg(
+  doc: jsPDF,
+  svg2pdf: (
+    element: Element,
+    pdf: jsPDF,
+    options: { x: number; y: number; width: number; height: number },
+  ) => Promise<jsPDF>,
+  svgText: string,
+  rect: MmRect,
+) {
+  const parsed = new DOMParser().parseFromString(svgText, "image/svg+xml");
+  await svg2pdf(parsed.documentElement, doc, {
+    x: rect.x,
+    y: rect.y,
+    width: rect.width,
+    height: rect.height,
+  });
 }
 
 export async function loadFlagSvgs(
@@ -243,12 +233,7 @@ export async function buildSheetPdf(
   fit: FlagFit,
 ): Promise<jsPDF> {
   const geometry = buildSheetGeometry(flags, columns, rows, printLayout, cloth, fit);
-  const doc = new jsPDF({
-    unit: "mm",
-    format: [geometry.pageWidthMm, geometry.pageHeightMm],
-    orientation:
-      geometry.pageWidthMm > geometry.pageHeightMm ? "landscape" : "portrait",
-  });
+  const doc = createPrintDocument(geometry.pageWidthMm, geometry.pageHeightMm);
   const svgById = await loadFlagSvgs(flags.slice(0, geometry.flags.length));
   await embedFlagArtwork(doc, geometry, svgById);
   drawSheetMarks(doc, geometry, printLayout);
